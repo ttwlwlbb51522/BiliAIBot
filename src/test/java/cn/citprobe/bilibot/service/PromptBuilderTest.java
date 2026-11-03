@@ -93,7 +93,8 @@ class PromptBuilderTest {
 
         List<ChatMessage> messages = builder.build(event, List.of());
 
-        assertFalse(messages.get(0).content().isBlank());
+        assertTrue(messages.get(0).content().contains("蓝色大肥鱼"));
+        assertTrue(messages.get(0).content().contains("本鱼"));
         assertTrue(messages.get(1).content().contains("暂无其他上下文"));
     }
 }
