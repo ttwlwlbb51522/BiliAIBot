@@ -1,0 +1,17 @@
+target/
+logs/
+data/
+
+# 含 Cookie / API Key 的本地配置，不要提交（只忽略项目根目录这一份）
+/application.properties
+
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+out/
+*.log
+*.tmp
+.DS_Store

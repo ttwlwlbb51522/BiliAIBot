@@ -1,0 +1,34 @@
+[Unit]
+Description=Bilibili DeepSeek Comment Bot
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=bilibot
+Group=bilibot
+WorkingDirectory=/opt/bilibili-bot
+
+# 如 java 不在 /usr/bin/java，请先执行 readlink -f "$(command -v java)" 后替换。
+ExecStart=/usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai -Djava.awt.headless=true -Xms64m -Xmx256m -jar /opt/bilibili-bot/bilibili-deepseek-bot.jar
+
+Restart=on-failure
+RestartSec=10
+
+# 服务无人值守运行：禁止交互式输入，密码登录需要人工验证码时请先手动登录并生成 data/session.json。
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bilibili-bot
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/bilibili-bot
+
+[Install]
+WantedBy=multi-user.target
