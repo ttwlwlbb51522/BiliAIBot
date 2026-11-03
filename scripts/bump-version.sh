@@ -29,7 +29,6 @@ case "$PART" in
 esac
 
 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-printf '%s\n' "$NEW_VERSION" > "$VERSION_FILE"
 
 if ! grep -q '<artifactId>bilibili-deepseek-bot</artifactId>' "$POM_FILE"; then
   echo "未能在 pom.xml 中找到项目" >&2
@@ -45,5 +44,6 @@ if ! grep -q "<version>${NEW_VERSION}</version>" "$POM_FILE"; then
   exit 1
 fi
 
+printf '%s\n' "$NEW_VERSION" > "$VERSION_FILE"
 echo "版本已更新: $CURRENT -> $NEW_VERSION"
 echo "下一步: 更新 CHANGELOG.md，运行 mvn clean package，然后提交并打标签 v$NEW_VERSION。"

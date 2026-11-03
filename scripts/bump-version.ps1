@@ -31,8 +31,6 @@ switch ($Part) {
 $newVersion = "$major.$minor.$patch"
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
-[System.IO.File]::WriteAllText($versionFile, "$newVersion`n", $utf8)
-
 $pom = [System.IO.File]::ReadAllText($pomFile)
 $pattern = '(<artifactId>bilibili-deepseek-bot</artifactId>\s*<version>)[^<]+(</version>)'
 if (-not [regex]::IsMatch($pom, $pattern)) {
@@ -40,6 +38,7 @@ if (-not [regex]::IsMatch($pom, $pattern)) {
 }
 $newPom = [regex]::Replace($pom, $pattern, "`${1}$newVersion`${2}", 1)
 [System.IO.File]::WriteAllText($pomFile, $newPom, $utf8)
+[System.IO.File]::WriteAllText($versionFile, "$newVersion`n", $utf8)
 
 Write-Host "Version updated: $current -> $newVersion"
 
