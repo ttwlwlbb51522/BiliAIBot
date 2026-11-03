@@ -57,10 +57,14 @@ public final class ConfigLoader {
         }
 
         applyEnvironmentOverrides(props);
-        return parse(props);
+        return parse(props, path.getParent());
     }
 
     static AppConfig parse(Properties props) {
+        return parse(props, Paths.get("").toAbsolutePath());
+    }
+
+    static AppConfig parse(Properties props, Path baseDir) {
         String cookie = sanitizeCookie(string(props, "bilibili.cookie", ""));
         String username = string(props, "bilibili.username", "");
         String password = rawString(props, "bilibili.password", "");
@@ -115,8 +119,8 @@ public final class ConfigLoader {
         double temperature = doubleInRange(props, "deepseek.temperature", 0.8, 0.0, 2.0);
 
         List<String> aliases = parseAliases(string(props, "bilibili.trigger-aliases", ""));
-        String systemPromptPath = string(props, "reply.system-prompt-file", "prompt/system.txt");
-        Path systemPromptFile = Paths.get(systemPromptPath).toAbsolutePath().normalize();
+        String systemPromptPath = string(props, "reply.system-prompt-file", "persona.txt");
+        Path systemPromptFile = resolveRelative(baseDir, systemPromptPath);
         Path stateFile = Paths.get(string(props, "app.state-file", "data/state.json")).toAbsolutePath().normalize();
         Path sessionFile = Paths.get(string(props, "app.session-file", "data/session.json"))
                 .toAbsolutePath().normalize();
@@ -320,6 +324,15 @@ public final class ConfigLoader {
             }
         }
         return List.copyOf(aliases);
+    }
+
+    private static Path resolveRelative(Path baseDir, String value) {
+        Path path = Paths.get(value);
+        if (path.isAbsolute()) {
+            return path.toAbsolutePath().normalize();
+        }
+        Path base = baseDir == null ? Paths.get("").toAbsolutePath() : baseDir;
+        return base.resolve(path).toAbsolutePath().normalize();
     }
 
     private static String trimTrailingSlash(String value) {

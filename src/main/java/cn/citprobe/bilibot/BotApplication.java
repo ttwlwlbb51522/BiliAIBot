@@ -11,6 +11,7 @@ import cn.citprobe.bilibot.config.ConfigLoader;
 import cn.citprobe.bilibot.console.BotConsole;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
 import cn.citprobe.bilibot.service.BotService;
+import cn.citprobe.bilibot.service.PersonaFile;
 import cn.citprobe.bilibot.service.PromptBuilder;
 import cn.citprobe.bilibot.state.StateStore;
 import cn.citprobe.bilibot.util.NativeConsoleEncoding;
@@ -37,6 +38,7 @@ public final class BotApplication {
         Path configPath = ConfigLoader.resolvePath(requestedConfigPath(args));
         try {
             AppConfig config = ConfigLoader.loadResolved(configPath);
+            PersonaFile.ensure(config.reply().systemPromptFile());
             start(config);
         } catch (ConfigException e) {
             log.error("启动失败：{}", e.getMessage());

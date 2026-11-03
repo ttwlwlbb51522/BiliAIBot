@@ -102,6 +102,8 @@ class ConfigFileManagerTest {
 
         assertEquals(123L, config.bilibili().ownerUid());
         assertEquals("auto", config.bilibili().loginType());
+        assertEquals(file.getParent().resolve("persona.txt").toAbsolutePath().normalize(),
+                config.reply().systemPromptFile());
         assertEquals(120, config.bilibili().firstRunGraceSeconds());
         assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());
         assertTrue(config.bilibili().dryRun());

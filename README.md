@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.2.3**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.3.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -395,6 +395,8 @@ bilibili.dry-run=true
 
 > 服务器使用 Cookie 时，建议把 `bilibili.username` 和 `bilibili.password` 留空，避免 Cookie 失效后无人值守的服务卡在人机验证。
 
+首次启动后会在 `/opt/bilibili-bot/persona.txt` 生成人设文件。直接编辑并保存，下一条回复会自动热加载，不需要重启 systemd 服务。
+
 前台试运行：
 
 ```bash
@@ -512,7 +514,7 @@ sudo systemctl status bilibili-bot
 | `reply.mention-owner`      | `false`             | 回复开头是否 @ 主人；默认不 @，二级评论仍会通知对方 |
 | `reply.prefix`             | 空                   | 固定前缀，例如 `【AI】`       |
 | `reply.fallback-text`      | `嗯嗯，我在听，你继续说～`      | 模型返回空内容时的兜底回复        |
-| `reply.system-prompt-file` | `prompt/system.txt` | 人设/规则文件              |
+| `reply.system-prompt-file` | `persona.txt`       | 人设文件，自动生成在配置文件/jar 同级，支持热更新 |
 | `reply.max-context-chars`  | `3000`              | 评论串上下文最大字符数          |
 
 ### 运行
@@ -528,10 +530,27 @@ sudo systemctl status bilibili-bot
 
 当前内置人设是「蓝色大肥鱼」：一只自称“鲸鱼娘”的蓝鲸少女，慵懒、傲娇、爱吃米饭，对主人软糯，绝不承认自己胖。
 
-- 实际生效的系统提示词：[prompt/system.txt](prompt/system.txt)
+程序首次启动时，会在 **配置文件/jar 同级目录**自动生成可编辑的人设文件：
+
+```text
+target\persona.txt
+```
+
+直接编辑这个文件即可。保存后**无需重启**，下一条 @ 回复会自动使用新的人设。
+
+- 运行时实际生效：`target\persona.txt`（按实际启动目录为准）
+- 源码中的模板：[prompt/system.txt](prompt/system.txt)
 - 原始角色卡：[prompt/character.json](prompt/character.json)
 
-编辑 `prompt/system.txt` 可以修改：
+配置项：
+
+```properties
+reply.system-prompt-file=persona.txt
+```
+
+相对路径以 `application.properties` 所在目录为基准。
+
+`persona.txt` 可以修改：
 
 - 角色名字、身份、语气、性格
 - 动作描写和口头禅
@@ -539,13 +558,15 @@ sudo systemctl status bilibili-bot
 - 禁止话题
 - 是否说明自己是 AI
 
-`{{max_length}}` 会被替换成 `reply.max-length`。修改后重启生效。
+`{{max_length}}` 会被替换成 `reply.max-length`。
 
-> `prompt/character.json` 保留原始角色卡，便于以后重新生成或调整人设；程序当前不会动态解析该文件。
+> `persona.txt` 不存在时会从 jar 内置人设自动生成；如果被删除或为空，程序会临时使用 jar 内置人设。
 >
-> 从 1.2.2 开始，同一份人设提示词也会打包进 jar。即使从 `target` 目录启动、外部 `prompt/system.txt` 找不到，也会使用 jar 内置的人设，不会退回通用 AI 助手提示词。
+> `prompt/character.json` 只是原始角色卡备份，程序不会动态解析它。
 >
-> 推荐使用 `deepseek.model=deepseek-chat`。如果使用指令跟随较弱的自定义模型/别名，即使提示词正确也可能出现人设漂移。
+> 编辑后如果下一条回复没有变化，检查日志中的 `已加载人设文件` / `检测到人设文件变化` 路径是否是你修改的文件。
+>
+> 推荐使用 `deepseek.model=deepseek-chat`。指令跟随较弱的模型别名可能产生人设漂移。
 
 ---
 
@@ -723,12 +744,13 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 
 1. 确认运行的是 **1.2.2 或更高版本**，旧版本在外部提示词文件缺失时会退回通用助手提示词。
 2. 查看启动日志：
-   - `已加载系统提示词: ...`：使用外部文件；
-   - `已加载 jar 内置系统提示词`：使用 jar 内置人设；
-   - `使用代码中的内置角色提示词`：说明 jar 资源异常，需要重新构建。
+   - `已生成可编辑的人设文件: ...`：首次生成；
+   - `已加载人设文件: ...`：正在使用外部 `persona.txt`；
+   - `使用 jar 内置人设`：外部文件缺失或为空；
+   - `检测到人设文件变化，已重新加载`：热加载成功。
 3. 日志 `[处理] Prompt 构造完成` 的字符数应明显大于 1000 字；如果只有几百字，说明加载的是旧版通用回退。
 4. 推荐 `deepseek.model=deepseek-chat`；指令跟随能力较弱的模型别名可能产生人设漂移。
-5. 修改人设后必须重启程序。
+5. 修改 `persona.txt` 后无需重启；下一条 @ 会自动使用新内容。如果没生效，确认修改的是日志中显示的那个文件。
 
 ### 回复内容被截断
 
@@ -769,7 +791,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.2.3`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.3.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 
