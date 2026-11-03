@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -21,6 +22,7 @@ public final class BotRunner {
     private final AppConfig config;
     private final BotService service;
     private final ScheduledExecutorService scheduler;
+    private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile long lastAuthLogAt;
     private volatile long lastRiskLogAt;
 
@@ -36,12 +38,19 @@ public final class BotRunner {
     }
 
     public void start() {
+        if (!running.compareAndSet(false, true)) {
+            return;
+        }
         scheduler.scheduleWithFixedDelay(
                 this::pollSafely,
                 0,
                 config.bilibili().pollIntervalSeconds(),
                 TimeUnit.SECONDS
         );
+    }
+
+    public boolean isRunning() {
+        return running.get();
     }
 
     private void pollSafely() {
@@ -73,6 +82,17 @@ public final class BotRunner {
     }
 
     public void close() {
+        if (!running.compareAndSet(true, false)) {
+            return;
+        }
         scheduler.shutdownNow();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                log.warn("轮询线程未在 5 秒内停止");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        log.info("轮询已停止");
     }
 }

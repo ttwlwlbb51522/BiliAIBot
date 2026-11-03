@@ -20,6 +20,7 @@
 - 自动读取同一根评论下的最近对话，让 AI 能接上上下文聊天。
 - 内置「蓝色大肥鱼」角色人设，也支持自由修改系统提示词。
 - 提供 Linux systemd 部署文件，服务器可独立长期运行，不依赖 B 站客户端或你的电脑。
+- Minecraft 服务端风格后台控制台，支持 `stop`、`status`、`version`、`help`。
 - 回复直接发在主人评论下方（正确设置 `root` / `parent`），不会另起一条一级评论。
 - 自动清理 Markdown、限制 1000 字以内、避免截断 emoji。
 - 本地状态文件去重，重启后不会重复回复同一条评论。
@@ -296,6 +297,35 @@ java -jar target\bilibili-deepseek-bot.jar D:\path\to\application.properties
 
 > 程序首次启动默认跳过 `bilibili.first-run-grace-seconds`（默认 120 秒）以前的历史 @，避免上线瞬间回复一堆旧消息。若确实要处理历史消息，设置 `bilibili.process-existing=true`，并用 `bilibili.max-mention-age-minutes` 限制回溯范围。
 
+### 控制台命令
+
+启动成功后，程序会进入类似 Minecraft 服务端的后台控制台：
+
+```text
+> help
+可用命令:
+  help     显示此帮助
+  status   查看运行状态和运行时长
+  version  查看程序版本
+  stop     安全停止机器人（也可用 shutdown/exit/quit）
+```
+
+常用命令：
+
+```text
+status   查看是否在运行、已运行时长
+version  查看当前版本
+stop     停止轮询并安全退出
+```
+
+`stop` 会先停止轮询线程，再退出程序；效果与 `Ctrl+C` 相同。Linux 使用 systemd 时也可以执行：
+
+```bash
+sudo systemctl stop bilibili-bot
+```
+
+> 如果程序的 stdin 被关闭或重定向（例如 systemd 的 `/dev/null`），控制台线程会自动退出，机器人继续在后台运行，不影响轮询。
+
 ### 5.1 Linux 服务器部署（systemd）
 
 机器人本身**不依赖 B 站客户端**，它只通过 HTTPS 调用 B 站 Web API 和 DeepSeek API。只要 Linux 服务器能联网，你的电脑关机后它仍会继续运行。
@@ -518,6 +548,7 @@ sudo systemctl status bilibili-bot
     │   │   ├── auth/                    # 账号密码/Cookie 登录、会话缓存
     │   │   ├── bilibili/                # B站接口客户端与 DTO
     │   │   ├── config/                  # 配置定位、生成、补全、加载与校验
+    │   │   ├── console/                 # Minecraft 风格控制台命令
     │   │   ├── deepseek/                # DeepSeek Chat 客户端
     │   │   ├── mention/                 # @ 事件解析、过滤、类型识别
     │   │   ├── service/                 # 业务编排、Prompt、回复清洗

@@ -8,6 +8,7 @@ import cn.citprobe.bilibot.bilibili.BotIdentity;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.config.ConfigException;
 import cn.citprobe.bilibot.config.ConfigLoader;
+import cn.citprobe.bilibot.console.BotConsole;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
 import cn.citprobe.bilibot.service.BotService;
 import cn.citprobe.bilibot.service.PromptBuilder;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 
 public final class BotApplication {
 
@@ -84,8 +86,10 @@ public final class BotApplication {
         } else {
             log.warn("已开启真实回复模式，请遵守 B 站社区规范并控制使用频率。");
         }
-        log.info("开始监听 @ 消息。按 Ctrl+C 退出。");
+        log.info("开始监听 @ 消息。输入 help 查看控制台命令，输入 stop 安全退出。");
+        Instant startedAt = Instant.now();
         runner.start();
+        new BotConsole(runner, startedAt).start();
     }
 
     private static Path requestedConfigPath(String[] args) {
