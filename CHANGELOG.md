@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-03
+
+### 新增
+
+- Minecraft 服务端风格的运行控制台。
+- 支持 `stop` / `shutdown` / `exit` / `quit` 安全停止机器人。
+- 支持 `help`、`status`、`version` 命令。
+- `stop` 会停止轮询线程并安全退出，效果与 `Ctrl+C` 相同。
+
 ## [1.0.1] - 2026-11-03
 
 ### 修复
