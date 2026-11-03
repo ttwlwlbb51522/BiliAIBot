@@ -168,7 +168,7 @@ public final class BilibiliClient {
                     "发表评论失败: " + nullToEmpty(response.message()));
         }
         long rpid = response.data() == null ? 0 : response.data().rpid();
-        log.info("B站回复发表成功，rpid={}", rpid);
+        log.debug("B站回复发表成功，rpid={}", rpid);
         return rpid;
     }
 

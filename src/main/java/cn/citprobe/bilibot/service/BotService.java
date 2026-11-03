@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import java.util.Set;
 public final class BotService {
 
     private static final Logger log = LoggerFactory.getLogger(BotService.class);
+    private static final int MAX_LOGGED_EVENTS = 2000;
 
     private final AppConfig config;
     private final BilibiliClient bilibili;
@@ -42,6 +44,7 @@ public final class BotService {
     private final PromptBuilder promptBuilder;
     private final ReplyFormatter replyFormatter;
     private final Map<Long, Integer> attempts = new HashMap<>();
+    private final Set<Long> loggedEventIds = new LinkedHashSet<>();
     private final long firstRunCutoff;
 
     public BotService(AppConfig config,
@@ -78,25 +81,67 @@ public final class BotService {
         List<MentionEvent> result = new ArrayList<>();
         for (BilibiliDtos.MsgFeedItem raw : rawItems) {
             Optional<MentionEvent> mapped = MentionEventFactory.from(raw);
+            logReceived(raw, mapped.orElse(null));
             if (mapped.isEmpty()) {
+                log.warn("[过滤] 无法解析 @ 通知: event={}，可能缺少 source_id/subject_id/正文",
+                        raw == null ? 0 : raw.id());
                 continue;
             }
             MentionEvent event = mapped.get();
             if (event.authorUid() != config.bilibili().ownerUid()) {
+                log.info("[过滤] 非主人 @，忽略: event={}, 用户={}({}), 内容={}",
+                        event.eventId(), event.authorName(), event.authorUid(), preview(event.content()));
                 continue;
             }
             if (!MentionSelector.isEligible(event, bot, config.bilibili())) {
                 if (event.commentType() <= 0) {
-                    log.warn("忽略一条主人 @：无法识别评论区类型，uri={}", event.uri());
+                    log.warn("[过滤] 无法识别评论区类型，忽略: event={}, uri={}",
+                            event.eventId(), event.uri());
                 } else {
-                    log.debug("忽略一条未满足触发条件的通知: event={}, content={}",
+                    log.info("[过滤] 未满足触发条件，忽略: event={}, 内容={}",
                             event.eventId(), preview(event.content()));
                 }
                 continue;
             }
+            log.info("[过滤] 命中主人 @: event={}, 评论={}, 类型={}",
+                    event.eventId(), event.sourceRpid(), event.commentType());
             result.add(event);
         }
         return result;
+    }
+
+    private void logReceived(BilibiliDtos.MsgFeedItem raw, MentionEvent event) {
+        if (raw == null || raw.id() <= 0 || !loggedEventIds.add(raw.id())) {
+            return;
+        }
+        while (loggedEventIds.size() > MAX_LOGGED_EVENTS) {
+            Long oldest = loggedEventIds.iterator().next();
+            loggedEventIds.remove(oldest);
+        }
+        BilibiliDtos.MsgItem item = raw.item();
+        String content = item == null ? "" : item.sourceContent();
+        String title = item == null ? "" : item.title();
+        String uri = item == null ? "" : item.uri();
+        log.info("[接收] @通知 event={} 用户={}({}) 内容={}",
+                raw.id(),
+                raw.user() == null ? "未知" : raw.user().nickname(),
+                raw.user() == null ? 0 : raw.user().mid(),
+                preview(content, 500));
+        if (event != null) {
+            log.info("[接收] 目标: 标题={}, 评论区类型={}, oid={}, root={}, source={}, 时间={}, uri={}",
+                    preview(title, 160), event.commentType(), event.subjectId(),
+                    event.rootRpid(), event.sourceRpid(),
+                    event.replyTime() > 0 ? Instant.ofEpochSecond(event.replyTime()) : "未知",
+                    uri);
+        } else {
+            log.info("[接收] 原始字段: type={}, businessId={}, subjectId={}, rootId={}, sourceId={}, uri={}",
+                    item == null ? "" : item.type(),
+                    item == null ? 0 : item.businessId(),
+                    item == null ? 0 : item.subjectId(),
+                    item == null ? 0 : item.rootId(),
+                    item == null ? 0 : item.sourceId(),
+                    uri);
+        }
     }
 
     /**
@@ -147,23 +192,38 @@ public final class BotService {
 
         CommentTarget target = event.toTarget();
         long start = System.currentTimeMillis();
-        log.info("处理主人 @：event={}, comment={}, type={}, root={}, owner={}({}), content={}",
-                event.eventId(), event.sourceRpid(), target.type(), target.root(),
-                event.authorName(), event.authorUid(), preview(event.content()));
+        log.info("[处理] 开始: event={}, comment={}, type={}, oid={}, root={}, parent={}, owner={}({}), content={}",
+                event.eventId(), event.sourceRpid(), target.type(), target.oid(), target.root(),
+                target.parent(), event.authorName(), event.authorUid(), preview(event.content()));
 
         try {
             List<ThreadComment> context = fetchContext(target);
+            log.info("[处理] 评论串上下文: {} 条", context.size());
+
             List<ChatMessage> messages = promptBuilder.build(event, context);
+            int promptChars = messages.stream().mapToInt(m -> m.content().length()).sum();
+            log.info("[处理] Prompt 构造完成: {} 条消息, {} 字", messages.size(), promptChars);
+
+            long aiStart = System.currentTimeMillis();
+            log.info("[处理] 调用 DeepSeek: model={}", config.deepseek().model());
             String modelOutput = deepSeek.chat(messages);
+            log.info("[处理] DeepSeek 返回: {} 字, 耗时={}ms",
+                    modelOutput.length(), System.currentTimeMillis() - aiStart);
+
             String reply = replyFormatter.format(modelOutput, event.authorName());
+            log.info("[处理] 回复整理完成: {} 字", reply.length());
 
             if (config.bilibili().dryRun()) {
-                log.info("[DRY-RUN] 不实际发表评论 | event={} comment={} | 拟回复：\n{}",
+                log.info("[发送] DRY-RUN 不实际发表评论 | event={} comment={} | 拟回复：\n{}",
                         event.eventId(), event.sourceRpid(), reply);
             } else {
+                log.info("[发送] 正在发表评论: oid={}, type={}, root={}, parent={}, 内容={}",
+                        target.oid(), target.type(), target.root(), target.parent(),
+                        preview(reply, 500));
                 long rpid = bilibili.addReply(target, reply);
-                log.info("回复成功：event={}, 新评论 rpid={}, 耗时={}ms",
-                        event.eventId(), rpid, System.currentTimeMillis() - start);
+                log.info("[发送] 成功: event={}, 新评论 rpid={}, 总耗时={}ms, 内容={}",
+                        event.eventId(), rpid, System.currentTimeMillis() - start,
+                        preview(reply, 500));
             }
 
             state.markHandled(event);
@@ -257,10 +317,21 @@ public final class BotService {
     }
 
     private static String preview(String value) {
+        return preview(value, 80);
+    }
+
+    private static String preview(String value, int maxLength) {
         if (value == null) {
             return "";
         }
         String oneLine = value.replaceAll("\\s+", " ").trim();
-        return oneLine.length() <= 80 ? oneLine : oneLine.substring(0, 80) + "…";
+        if (oneLine.length() <= maxLength) {
+            return oneLine;
+        }
+        int end = Math.max(0, maxLength);
+        if (end > 0 && Character.isHighSurrogate(oneLine.charAt(end - 1))) {
+            end--;
+        }
+        return oneLine.substring(0, end) + "…";
     }
 }
