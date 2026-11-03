@@ -155,7 +155,7 @@ public final class ConfigLoader {
                 ),
                 new AppConfig.Reply(
                         maxLength,
-                        bool(props, "reply.mention-owner", true),
+                        bool(props, "reply.mention-owner", false),
                         string(props, "reply.prefix", ""),
                         fallbackText,
                         systemPromptFile,

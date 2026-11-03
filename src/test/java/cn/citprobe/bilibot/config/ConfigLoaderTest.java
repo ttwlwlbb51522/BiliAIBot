@@ -36,6 +36,7 @@ class ConfigLoaderTest {
         assertFalse(config.bilibili().processExisting());
         assertEquals(120, config.bilibili().firstRunGraceSeconds());
         assertEquals("auto", config.bilibili().loginType());
+        assertFalse(config.reply().mentionOwner(), "默认回复不应 @ 主人");
         assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());
         assertTrue(config.app().stateFile().isAbsolute());
         assertTrue(config.app().sessionFile().isAbsolute());
