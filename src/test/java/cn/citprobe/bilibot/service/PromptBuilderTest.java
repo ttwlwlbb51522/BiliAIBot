@@ -27,7 +27,7 @@ class PromptBuilderTest {
                 "SESSDATA=x; bili_jct=y", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
                 45, 20, "https://api.bilibili.com/x/msgfeed/at",
                 "https://api.bilibili.com/x/msgfeed/reply",
-                true, true, false, 120, 120, 12, true, List.of("小深"), 3
+                true, false, true, false, 120, 120, 12, true, List.of("小深"), 3
         );
     }
 
@@ -80,6 +80,26 @@ class PromptBuilderTest {
         assertFalse(stripped.contains("@小深"));
         assertFalse(stripped.contains("@DeepSeek"));
         assertTrue(stripped.contains("在吗"));
+    }
+
+    @Test
+    void addressesNonOwnerAsNetizen() {
+        PromptBuilder builder = new PromptBuilder(
+                replyConfig(tempDir.resolve("missing.txt")), bilibiliConfig(), new BotIdentity(42L, "DeepSeek")
+        );
+        MentionEvent event = new MentionEvent(
+                2L, 101L, 0L, 999L, 1, 1_700_000_000L,
+                8L, "路人", "@DeepSeek 这鱼怎么卖", "标题",
+                "https://www.bilibili.com/video/BV1xx", Set.of(42L)
+        );
+
+        String user = builder.build(event, List.of()).get(1).content();
+
+        assertTrue(user.contains("【发言者身份】网友"));
+        assertTrue(user.contains("【发言者昵称】路人"));
+        assertTrue(user.contains("称呼对方为“网友”"));
+        assertTrue(user.contains("对方不是主人"));
+        assertFalse(user.contains("直接回复主人"));
     }
 
     @Test

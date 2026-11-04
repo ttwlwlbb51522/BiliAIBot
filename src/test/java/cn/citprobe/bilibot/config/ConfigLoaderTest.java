@@ -37,6 +37,7 @@ class ConfigLoaderTest {
         assertEquals(120, config.bilibili().firstRunGraceSeconds());
         assertEquals("auto", config.bilibili().loginType());
         assertTrue(config.bilibili().replyFeedEnabled());
+        assertFalse(config.bilibili().allowOtherUsers());
         assertEquals("https://api.bilibili.com/x/msgfeed/reply", config.bilibili().replyFeedUrl());
         assertFalse(config.reply().mentionOwner(), "默认回复不应 @ 主人");
         assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());

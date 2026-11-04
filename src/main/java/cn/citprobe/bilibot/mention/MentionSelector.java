@@ -50,10 +50,10 @@ public final class MentionSelector {
         if (event.sourceRpid() <= 0 || event.subjectId() <= 0 || event.commentType() <= 0) {
             return false;
         }
-        if (event.authorUid() != config.ownerUid()) {
+        if (event.authorUid() == bot.mid()) {
             return false;
         }
-        if (event.authorUid() == bot.mid()) {
+        if (event.authorUid() != config.ownerUid() && !config.allowOtherUsers()) {
             return false;
         }
         return event.content() != null && !event.content().isBlank();

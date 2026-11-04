@@ -16,6 +16,11 @@ class MentionSelectorTest {
     private final AppConfig.Bilibili config = config(true, List.of("小深"));
 
     private static AppConfig.Bilibili config(boolean requireMention, List<String> aliases) {
+        return config(requireMention, aliases, false);
+    }
+
+    private static AppConfig.Bilibili config(boolean requireMention, List<String> aliases,
+                                             boolean allowOtherUsers) {
         return new AppConfig.Bilibili(
                 "SESSDATA=x; bili_jct=y",
                 "",
@@ -29,6 +34,7 @@ class MentionSelectorTest {
                 "https://api.bilibili.com/x/msgfeed/at",
                 "https://api.bilibili.com/x/msgfeed/reply",
                 true,
+                allowOtherUsers,
                 requireMention,
                 false,
                 120,
@@ -73,6 +79,13 @@ class MentionSelectorTest {
     void rejectsOtherUsersForReplyContinuation() {
         assertFalse(MentionSelector.isEligibleReply(
                 event(8L, "本鱼继续说", Set.of()), bot, config));
+    }
+
+    @Test
+    void acceptsOtherUsersWhenEnabled() {
+        AppConfig.Bilibili otherEnabled = config(true, List.of(), true);
+        assertTrue(MentionSelector.isEligible(
+                event(8L, "@DeepSeek 你好", Set.of(42L)), bot, otherEnabled));
     }
 
     @Test

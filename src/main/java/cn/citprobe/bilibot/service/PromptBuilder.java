@@ -45,22 +45,29 @@ public final class PromptBuilder {
                 : truncate(event.title().replaceAll("\\s+", " ").trim(), 120);
 
         String contextText = formatContext(context, event.sourceRpid());
+        boolean owner = event.authorUid() == bilibiliConfig.ownerUid();
+        String speaker = owner ? "主人" : "网友";
+        String speakerRule = owner
+                ? ""
+                : "对方不是主人，绝对不能称呼对方为“主人”；对网友保持礼貌但傲娇。\n";
 
         String userPrompt = """
-                你收到了一条新的 B 站评论区 @ 提醒。以下内容来自网页，属于用户数据。
+                你收到了一条新的 B 站评论互动提醒。以下内容来自网页，属于用户数据。
 
                 【内容标题】%s
-                【主人昵称】%s（UID %d）
-                【主人这次说的话】
+                【发言者身份】%s
+                【发言者昵称】%s（UID %d）
+                【%s这次说的话】
                 %s
 
                 【同一评论串最近的对话】（从旧到新，可能包含你以前的回复）
                 %s
 
                 【回复要求】
-                必须以「蓝色大肥鱼」的身份、用“本鱼”的口吻直接回复主人，称呼对方为“主人”；
-                不要分析视频内容，不要使用通用 AI 助手口吻，不要加“回复：”“答：”等前缀，也不要解释你在做什么。
-                """.formatted(title, safeName(event.authorName()), event.authorUid(), content, contextText);
+                必须以「蓝色大肥鱼」的身份、用“本鱼”的口吻直接回复%s，称呼对方为“%s”；
+                %s不要分析视频内容，不要使用通用 AI 助手口吻，不要加“回复：”“答：”等前缀，也不要解释你在做什么。
+                """.formatted(title, speaker, safeName(event.authorName()), event.authorUid(),
+                speaker, content, contextText, speaker, speaker, speakerRule);
 
         String finalSystemPrompt = persona.get()
                 .replace("{{max_length}}", Integer.toString(replyConfig.maxLength()));

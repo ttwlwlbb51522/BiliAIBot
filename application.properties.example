@@ -64,6 +64,10 @@ bilibili.require-bot-mention=true
 # 是否监听“回复我的”：主人直接在机器人回复下继续回复时，无需 @ 也能继续对话。
 bilibili.reply-feed-enabled=true
 
+# 是否允许主人以外的人 @ 机器人并对话。开启后网友会被称为“网友”，不会被叫“主人”。
+# 注意：公开机器人可能被陌生人刷屏并消耗 DeepSeek 额度，建议按需开启。
+bilibili.allow-other-users=false
+
 # 读取评论串中最近多少条回复作为上下文，0 表示关闭。
 bilibili.thread-context-size=12
 

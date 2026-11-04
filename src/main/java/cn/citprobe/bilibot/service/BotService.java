@@ -104,9 +104,10 @@ public final class BotService {
                 continue;
             }
             MentionEvent event = mapped.get();
-            if (event.authorUid() != config.bilibili().ownerUid()) {
-                log.info("[过滤] 非主人 @，忽略: event={}, 用户={}({}), 内容={}",
-                        event.eventId(), event.authorName(), event.authorUid(), preview(event.content()));
+            boolean owner = event.authorUid() == config.bilibili().ownerUid();
+            if (!owner && !config.bilibili().allowOtherUsers()) {
+                log.debug("[过滤] 非主人 @，未开启网友对话，忽略: event={}, 用户={}({})",
+                        event.eventId(), event.authorName(), event.authorUid());
                 continue;
             }
             if (!MentionSelector.isEligible(event, bot, config.bilibili())) {
@@ -119,8 +120,8 @@ public final class BotService {
                 }
                 continue;
             }
-            log.info("[过滤] 命中主人 @: event={}, 评论={}, 类型={}",
-                    event.eventId(), event.sourceRpid(), event.commentType());
+            log.info("[过滤] 命中{} @: event={}, 评论={}, 类型={}",
+                    owner ? "主人" : "网友", event.eventId(), event.sourceRpid(), event.commentType());
             result.add(event);
         }
         return result;
@@ -137,8 +138,9 @@ public final class BotService {
                 continue;
             }
             MentionEvent event = mapped.get();
-            if (event.authorUid() != config.bilibili().ownerUid()) {
-                log.debug("[过滤] 非主人回复，忽略: event={}, 用户={}({})",
+            boolean owner = event.authorUid() == config.bilibili().ownerUid();
+            if (!owner && !config.bilibili().allowOtherUsers()) {
+                log.debug("[过滤] 非主人回复，未开启网友对话，忽略: event={}, 用户={}({})",
                         event.eventId(), event.authorName(), event.authorUid());
                 continue;
             }
@@ -147,8 +149,9 @@ public final class BotService {
                         event.eventId(), preview(event.content()));
                 continue;
             }
-            log.info("[过滤] 命中主人回复机器人评论: event={}, 评论={}, 类型={}, 内容={}",
-                    event.eventId(), event.sourceRpid(), event.commentType(), preview(event.content()));
+            log.info("[过滤] 命中{}回复机器人评论: event={}, 评论={}, 类型={}, 内容={}",
+                    owner ? "主人" : "网友", event.eventId(), event.sourceRpid(),
+                    event.commentType(), preview(event.content()));
             result.add(event);
         }
         return result;
@@ -237,7 +240,7 @@ public final class BotService {
 
         CommentTarget target = event.toTarget();
         long start = System.currentTimeMillis();
-        log.info("[处理] 开始: event={}, comment={}, type={}, oid={}, root={}, parent={}, owner={}({}), content={}",
+        log.info("[处理] 开始: event={}, comment={}, type={}, oid={}, root={}, parent={}, author={}({}), content={}",
                 event.eventId(), event.sourceRpid(), target.type(), target.oid(), target.root(),
                 target.parent(), event.authorName(), event.authorUid(), preview(event.content()));
 

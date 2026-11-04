@@ -144,6 +144,7 @@ public final class ConfigLoader {
                         atFeedUrl,
                         replyFeedUrl,
                         bool(props, "bilibili.reply-feed-enabled", true),
+                        bool(props, "bilibili.allow-other-users", false),
                         bool(props, "bilibili.require-bot-mention", true),
                         bool(props, "bilibili.process-existing", false),
                         firstRunGrace,

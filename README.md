@@ -1,10 +1,10 @@
 # Bilibili DeepSeek 评论区 AI 机器人（Java）
 
-在 B 站评论区里，用指定的**主人账号** @ 机器人账号，机器人就会读取这条评论及同一评论串的上下文，调用 DeepSeek 生成回复，并以**回复该评论**的形式发回评论区。
+在 B 站评论区里，用指定的**主人账号** @ 机器人账号，机器人就会读取这条评论及同一评论串的上下文，调用 DeepSeek 生成回复，并以**回复该评论**的形式发回评论区。也可开启配置，允许其他用户 @ 机器人对话，并统一称呼他们为“网友”。
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.4.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.5.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -14,7 +14,8 @@
 - 支持**账号密码登录** B 站机器人账号，登录成功后缓存会话，后续启动自动复用。
 - 登录后如触发 B 站安全验证，会把验证链接打印到控制台，手动完成后继续登录。
 - 也支持传统 Cookie 登录，作为密码登录失败时的备用方式。
-- 可配置**主人账号 UID**，只有该 UID 的 @ 才会触发。
+- 可配置**主人账号 UID**，默认只有该 UID 的 @ 才会触发。
+- 通过 `bilibili.allow-other-users=true` 可允许其他人 @ 机器人对话；其他人会被称为“网友”，不会被叫“主人”。
 - 主人在机器人回复下面继续回复时，**无需再次 @**，也能自动接着聊。
 - 通过 B 站「@ 我的」和「回复我的」消息接口轮询，支持视频、动态、专栏、音频等评论区的类型识别。
 - 调用 DeepSeek `chat/completions` 生成回复，支持自定义模型、温度、最大 token。
@@ -43,9 +44,9 @@
            │ 每 45 秒轮询
            ▼
 ┌─────────────────────┐
-│ 过滤：发出者 UID     │
-│ == 配置的主人 UID    │
-│ 且确实 @ 了机器人    │
+│ 过滤：主人，或已开启  │
+│ allow-other-users    │
+│ 的网友；@ 需确实 @   │
 └──────────┬──────────┘
            ▼
 ┌─────────────────────┐
@@ -338,7 +339,9 @@ sudo systemctl stop bilibili-bot
 [接收] 回复通知 event=... 用户=... 内容=...
 [接收] 目标: 标题=... 评论区类型=... oid=... root=... source=...
 [过滤] 命中主人 @: ...
+[过滤] 命中网友 @: ...
 [过滤] 命中主人回复机器人评论: ...
+[过滤] 命中网友回复机器人评论: ...
 [处理] 开始: ...
 [处理] 评论串上下文: N 条
 [处理] Prompt 构造完成: 2 条消息, N 字
@@ -487,11 +490,12 @@ sudo systemctl status bilibili-bot
 | `bilibili.username`                | 空       | 机器人账号（手机号/邮箱），与密码同时填写                      |
 | `bilibili.password`                | 空       | 机器人账号密码（明文，注意保护）                           |
 | `bilibili.cookie`                  | 空       | 备用登录方式，完整 Cookie，必须含 `SESSDATA`、`bili_jct` |
-| `bilibili.owner-uid`               | `0`     | 主人 UID，只有这个 UID 能触发                        |
-| `bilibili.require-bot-mention`     | `true`  | @ 通知是否额外校验确实 @ 了机器人；回复续聊不受此限制             |
+| `bilibili.owner-uid`               | `0`     | 主人 UID；默认只有这个 UID 能触发                      |
+| `bilibili.require-bot-mention`     | `true`  | @ 通知是否额外校验确实 @ 了机器人；回复续聊不受此限制              |
 | `bilibili.reply-feed-enabled`      | `true`  | 是否监听“回复我的”，主人回复机器人评论时继续对话                  |
+| `bilibili.allow-other-users`       | `false` | 是否允许主人以外的人 @ 机器人对话；网友不会被称呼为“主人”            |
 | `bilibili.process-existing`        | `false` | 首次启动是否处理已存在的 @/回复                          |
-| `bilibili.first-run-grace-seconds` | `120`   | 首次启动时，最近多少秒内的 @/回复 仍视为新消息                 |
+| `bilibili.first-run-grace-seconds` | `120`   | 首次启动时，最近多少秒内的 @/回复 仍视为新消息                  |
 | `bilibili.max-mention-age-minutes` | `120`   | 超过此时间的 @/回复 不再回复                           |
 | `bilibili.poll-interval-seconds`   | `45`    | 轮询间隔，最小 10 秒                               |
 | `bilibili.request-timeout-seconds` | `20`    | B 站请求超时                                    |
@@ -500,7 +504,9 @@ sudo systemctl status bilibili-bot
 | `bilibili.trigger-aliases`         | 空       | 额外触发别名，逗号分隔                                |
 | `bilibili.dry-run`                 | `true`  | 只写日志，不实际发评论                                |
 | `bilibili.at-feed-url`             | 官方      | @ 消息接口，一般不改                                |
-| `bilibili.reply-feed-url`          | 官方      | “回复我的”消息接口，一般不改                          |
+| `bilibili.reply-feed-url`          | 官方      | “回复我的”消息接口，一般不改                            |
+
+> `bilibili.allow-other-users` 默认关闭，避免陌生人刷屏和消耗 DeepSeek 额度。开启后其他用户 @ 机器人也会触发回复，但提示词会明确称其为“网友”，不会叫“主人”。建议先用 `bilibili.dry-run=true` 观察日志。
 
 ### DeepSeek
 
@@ -516,14 +522,14 @@ sudo systemctl status bilibili-bot
 
 ### 回复
 
-| 配置                         | 默认值                 | 说明                   |
-|----------------------------|---------------------|----------------------|
-| `reply.max-length`         | `900`               | 最终评论最大字符数，B 站上限 1000 |
-| `reply.mention-owner`      | `false`             | 回复开头是否 @ 主人；默认不 @，二级评论仍会通知对方 |
-| `reply.prefix`             | 空                   | 固定前缀，例如 `【AI】`       |
-| `reply.fallback-text`      | `嗯嗯，我在听，你继续说～`      | 模型返回空内容时的兜底回复        |
-| `reply.system-prompt-file` | `persona.txt`       | 人设文件，自动生成在配置文件/jar 同级，支持热更新 |
-| `reply.max-context-chars`  | `3000`              | 评论串上下文最大字符数          |
+| 配置                         | 默认值            | 说明                           |
+|----------------------------|----------------|------------------------------|
+| `reply.max-length`         | `900`          | 最终评论最大字符数，B 站上限 1000         |
+| `reply.mention-owner`      | `false`        | 回复开头是否 @ 主人；默认不 @，二级评论仍会通知对方 |
+| `reply.prefix`             | 空              | 固定前缀，例如 `【AI】`               |
+| `reply.fallback-text`      | `嗯嗯，我在听，你继续说～` | 模型返回空内容时的兜底回复                |
+| `reply.system-prompt-file` | `persona.txt`  | 人设文件，自动生成在配置文件/jar 同级，支持热更新  |
+| `reply.max-context-chars`  | `3000`         | 评论串上下文最大字符数                  |
 
 ### 运行
 
@@ -557,6 +563,11 @@ reply.system-prompt-file=persona.txt
 ```
 
 相对路径以 `application.properties` 所在目录为基准。
+
+人设约定：
+
+- 配置中的主人账号称为“主人”，语气亲近、软糯。
+- 其他用户称为“网友”，语气礼貌但傲娇；绝不能叫网友“主人”。
 
 `persona.txt` 可以修改：
 
@@ -799,7 +810,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.4.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.5.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 
