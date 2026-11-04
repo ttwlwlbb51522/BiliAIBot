@@ -6,7 +6,8 @@ import java.util.List;
 /**
  * 应用配置。所有字段均来自 application.properties 或环境变量。
  */
-public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply, App app) {
+public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
+                        Recommendation recommendation, App app) {
 
     public record Bilibili(
             String cookie,
@@ -57,6 +58,19 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply, App a
             String fallbackText,
             Path systemPromptFile,
             int maxContextChars
+    ) {
+    }
+
+    public record Recommendation(
+            boolean enabled,
+            int intervalMinutes,
+            int maxFolders,
+            int samplesPerFolder,
+            int relatedLimit,
+            int maxResults,
+            int minScore,
+            List<Long> favoriteFolderIds,
+            Path outputFile
     ) {
     }
 

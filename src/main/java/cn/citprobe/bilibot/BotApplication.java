@@ -10,6 +10,7 @@ import cn.citprobe.bilibot.config.ConfigException;
 import cn.citprobe.bilibot.config.ConfigLoader;
 import cn.citprobe.bilibot.console.BotConsole;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
+import cn.citprobe.bilibot.recommend.RecommendationService;
 import cn.citprobe.bilibot.service.BotService;
 import cn.citprobe.bilibot.service.PersonaFile;
 import cn.citprobe.bilibot.service.PromptBuilder;
@@ -72,7 +73,8 @@ public final class BotApplication {
         StateStore state = new StateStore(config.app().stateFile());
         PromptBuilder promptBuilder = new PromptBuilder(config.reply(), config.bilibili(), bot);
         BotService service = new BotService(config, bilibili, deepSeek, state, bot, promptBuilder);
-        BotRunner runner = new BotRunner(config, service);
+        RecommendationService recommendationService = new RecommendationService(config, bilibili, deepSeek);
+        BotRunner runner = new BotRunner(config, service, recommendationService);
 
         Runtime.getRuntime().addShutdownHook(new Thread(runner::close, "bili-deepseek-shutdown"));
 

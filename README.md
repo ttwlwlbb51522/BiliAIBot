@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.5.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.6.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -24,6 +24,7 @@
 - 提供 Linux systemd 部署文件，服务器可独立长期运行，不依赖 B 站客户端或你的电脑。
 - Minecraft 服务端风格后台控制台，支持 `stop`、`status`、`version`、`help`。
 - 后台日志详细记录 @ 接收、过滤、Prompt 构造、DeepSeek 调用和评论发送过程。
+- 可扫描主人公开收藏夹，结合相关视频和 DeepSeek 评分生成推荐，写入日志和 JSON 文件。
 - 回复直接发在主人评论下方（正确设置 `root` / `parent`），不会另起一条一级评论。
 - 自动清理 Markdown、限制 1000 字以内、避免截断 emoji。
 - 本地状态文件去重，重启后不会重复回复同一条评论。
@@ -358,6 +359,32 @@ sudo systemctl stop bilibili-bot
 
 日志包含评论和回复内容，请妥善保护 `logs/` 目录。
 
+### 收藏夹推荐
+
+开启后，程序会：
+
+1. 读取主人的**公开收藏夹**；
+2. 从收藏视频获取 B 站“相关视频”；
+3. 排除收藏夹已有和已推荐过的视频；
+4. 调用 DeepSeek 按收藏偏好评分；
+5. 把达到分数线的结果写入 `data/recommendations.json`，并在日志中输出标题、链接和理由。
+
+示例：
+
+```text
+[推荐] 开始扫描主人公开收藏夹...
+[推荐] 收藏夹「默认收藏夹」读取 5 个样本
+[推荐] 扫描完成: 收藏夹=1 样本=5 候选=38 推荐=2 文件=...\data\recommendations.json
+[推荐] 85分 | 视频标题 | UP: 某某 | https://www.bilibili.com/video/BV... | 理由: ...
+```
+
+限制：
+
+- 只能读取**公开收藏夹**；私密收藏夹需要主人账号权限，当前不支持。
+- “有意思”是按标题、简介、UP 和收藏偏好由 AI 评分，并不会真正观看视频。
+- 当前只写日志和 JSON 文件，**不会自动私聊发送**。
+- 第一次扫描在启动约 60 秒后执行，之后按 `recommend.interval-minutes` 间隔执行。
+
 ### 5.1 Linux 服务器部署（systemd）
 
 机器人本身**不依赖 B 站客户端**，它只通过 HTTPS 调用 B 站 Web API 和 DeepSeek API。只要 Linux 服务器能联网，你的电脑关机后它仍会继续运行。
@@ -538,6 +565,22 @@ sudo systemctl status bilibili-bot
 | `app.state-file`   | `data/state.json`   | 去重状态文件         |
 | `app.session-file` | `data/session.json` | 登录 Cookie 会话缓存 |
 
+### 收藏夹推荐
+
+| 配置                           | 默认值                        | 说明                              |
+|------------------------------|----------------------------|---------------------------------|
+| `recommend.enabled`          | `false`                    | 是否开启公开收藏夹推荐                     |
+| `recommend.interval-minutes` | `720`                      | 两次扫描间隔，默认 12 小时                 |
+| `recommend.max-folders`      | `5`                        | 最多扫描几个公开收藏夹                     |
+| `recommend.samples-per-folder` | `5`                      | 每个收藏夹取几个视频作为偏好样本                |
+| `recommend.related-limit`    | `10`                       | 每个样本取多少条相关推荐                    |
+| `recommend.max-results`      | `3`                        | 每次最多保留几条推荐                      |
+| `recommend.min-score`        | `70`                       | AI 评分门槛，0-100                   |
+| `recommend.favorite-folders` | 空                          | 指定收藏夹 media_id，逗号分隔；空表示自动选择公开收藏夹 |
+| `recommend.output-file`      | `data/recommendations.json` | 推荐结果 JSON 文件，不会自动私聊              |
+
+> 仅公开收藏夹可读。推荐结果只写日志和 JSON，不会发送 B 站私聊。
+
 ---
 
 ## 7. 自定义人设
@@ -618,6 +661,7 @@ reply.system-prompt-file=persona.txt
     │   │   ├── console/                 # Minecraft 风格控制台命令
     │   │   ├── deepseek/                # DeepSeek Chat 客户端
     │   │   ├── mention/                 # @ 事件解析、过滤、类型识别
+    │   │   ├── recommend/               # 收藏夹扫描、相关视频、AI 推荐评分
     │   │   ├── service/                 # 业务编排、Prompt、回复清洗
     │   │   ├── state/                   # 去重状态持久化
     │   │   └── util/
@@ -810,7 +854,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.5.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.6.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

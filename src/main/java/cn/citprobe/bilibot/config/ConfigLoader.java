@@ -127,6 +127,11 @@ public final class ConfigLoader {
         Path stateFile = Paths.get(string(props, "app.state-file", "data/state.json")).toAbsolutePath().normalize();
         Path sessionFile = Paths.get(string(props, "app.session-file", "data/session.json"))
                 .toAbsolutePath().normalize();
+        List<Long> favoriteFolderIds = parseLongList(
+                string(props, "recommend.favorite-folders", ""));
+        Path recommendationFile = Paths.get(
+                string(props, "recommend.output-file", "data/recommendations.json"))
+                .toAbsolutePath().normalize();
 
         AppConfig config = new AppConfig(
                 new AppConfig.Bilibili(
@@ -170,6 +175,17 @@ public final class ConfigLoader {
                         fallbackText,
                         systemPromptFile,
                         maxContextChars
+                ),
+                new AppConfig.Recommendation(
+                        bool(props, "recommend.enabled", false),
+                        intInRange(props, "recommend.interval-minutes", 720, 10, 10080),
+                        intInRange(props, "recommend.max-folders", 5, 1, 50),
+                        intInRange(props, "recommend.samples-per-folder", 5, 1, 20),
+                        intInRange(props, "recommend.related-limit", 10, 1, 30),
+                        intInRange(props, "recommend.max-results", 3, 1, 10),
+                        intInRange(props, "recommend.min-score", 70, 0, 100),
+                        favoriteFolderIds,
+                        recommendationFile
                 ),
                 new AppConfig.App(stateFile, sessionFile)
         );
@@ -330,6 +346,28 @@ public final class ConfigLoader {
             }
         }
         return List.copyOf(aliases);
+    }
+
+    private static List<Long> parseLongList(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        List<Long> result = new ArrayList<>();
+        for (String part : value.split(",")) {
+            String text = part.trim();
+            if (text.isEmpty()) {
+                continue;
+            }
+            try {
+                long id = Long.parseLong(text);
+                if (id > 0) {
+                    result.add(id);
+                }
+            } catch (NumberFormatException e) {
+                throw new ConfigException("recommend.favorite-folders 只能填写数字收藏夹 ID");
+            }
+        }
+        return List.copyOf(result);
     }
 
     private static Path resolveRelative(Path baseDir, String value) {

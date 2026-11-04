@@ -40,6 +40,10 @@ class ConfigLoaderTest {
         assertFalse(config.bilibili().allowOtherUsers());
         assertEquals("https://api.bilibili.com/x/msgfeed/reply", config.bilibili().replyFeedUrl());
         assertFalse(config.reply().mentionOwner(), "默认回复不应 @ 主人");
+        assertFalse(config.recommendation().enabled());
+        assertEquals(720, config.recommendation().intervalMinutes());
+        assertEquals(5, config.recommendation().maxFolders());
+        assertTrue(config.recommendation().favoriteFolderIds().isEmpty());
         assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());
         assertTrue(config.app().stateFile().isAbsolute());
         assertTrue(config.app().sessionFile().isAbsolute());

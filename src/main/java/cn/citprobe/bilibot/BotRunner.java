@@ -2,6 +2,7 @@ package cn.citprobe.bilibot;
 
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.config.AppConfig;
+import cn.citprobe.bilibot.recommend.RecommendationService;
 import cn.citprobe.bilibot.service.BotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,17 +22,29 @@ public final class BotRunner {
 
     private final AppConfig config;
     private final BotService service;
+    private final RecommendationService recommendationService;
     private final ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService recommendationScheduler;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile long lastAuthLogAt;
     private volatile long lastRiskLogAt;
 
     public BotRunner(AppConfig config, BotService service) {
+        this(config, service, null);
+    }
+
+    public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService) {
         this.config = config;
         this.service = service;
+        this.recommendationService = recommendationService;
         AtomicInteger counter = new AtomicInteger();
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-poll-" + counter.incrementAndGet());
+            thread.setDaemon(false);
+            return thread;
+        });
+        this.recommendationScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "bili-deepseek-recommend");
             thread.setDaemon(false);
             return thread;
         });
@@ -47,6 +60,14 @@ public final class BotRunner {
                 config.bilibili().pollIntervalSeconds(),
                 TimeUnit.SECONDS
         );
+        if (recommendationService != null && config.recommendation().enabled()) {
+            recommendationScheduler.scheduleWithFixedDelay(
+                    this::recommendSafely,
+                    60,
+                    config.recommendation().intervalMinutes(),
+                    TimeUnit.MINUTES
+            );
+        }
     }
 
     public boolean isRunning() {
@@ -77,6 +98,15 @@ public final class BotRunner {
         }
     }
 
+    private void recommendSafely() {
+        try {
+            recommendationService.runOnce();
+        } catch (Exception e) {
+            log.warn("[推荐] 本轮扫描失败: {}", e.getMessage());
+            log.debug("推荐扫描异常详情", e);
+        }
+    }
+
     private static boolean shouldLog(long lastAt) {
         return System.currentTimeMillis() - lastAt >= 300_000L;
     }
@@ -86,10 +116,12 @@ public final class BotRunner {
             return;
         }
         scheduler.shutdownNow();
+        recommendationScheduler.shutdownNow();
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                 log.warn("轮询线程未在 5 秒内停止");
             }
+            recommendationScheduler.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

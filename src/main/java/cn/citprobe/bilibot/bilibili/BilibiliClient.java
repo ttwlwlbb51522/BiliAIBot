@@ -3,6 +3,9 @@ package cn.citprobe.bilibot.bilibili;
 import cn.citprobe.bilibot.bilibili.model.BilibiliDtos;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.config.ConfigException;
+import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteFolder;
+import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteVideo;
+import cn.citprobe.bilibot.recommend.RecommendationModels.RelatedVideo;
 import cn.citprobe.bilibot.util.Json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +37,12 @@ public final class BilibiliClient {
     private static final String NAV_URL = "https://api.bilibili.com/x/web-interface/nav";
     private static final String REPLY_ADD_URL = "https://api.bilibili.com/x/v2/reply/add";
     private static final String THREAD_REPLY_URL = "https://api.bilibili.com/x/v2/reply/reply";
+    private static final String FAVORITE_FOLDERS_URL =
+            "https://api.bilibili.com/x/v3/fav/folder/created/list";
+    private static final String FAVORITE_RESOURCES_URL =
+            "https://api.bilibili.com/x/v3/fav/resource/list";
+    private static final String RELATED_VIDEOS_URL =
+            "https://api.bilibili.com/x/web-interface/archive/related";
 
     private final AppConfig.Bilibili config;
     private final HttpClient http;
@@ -178,6 +187,111 @@ public final class BilibiliClient {
         long rpid = response.data() == null ? 0 : response.data().rpid();
         log.debug("B站回复发表成功，rpid={}", rpid);
         return rpid;
+    }
+
+    /**
+     * 读取主人公开收藏夹。私密收藏夹不会出现在其他账号的接口结果中。
+     */
+    public List<FavoriteFolder> fetchFavoriteFolders(long ownerUid) {
+        String url = FAVORITE_FOLDERS_URL
+                + "?up_mid=" + ownerUid + "&pn=1&ps=50&platform=web";
+        JsonNode root = execute(baseRequest(url, "https://space.bilibili.com/" + ownerUid + "/favlist")
+                .GET().build());
+        checkCode(root, "读取收藏夹列表");
+        JsonNode list = root.path("data").path("list");
+        List<FavoriteFolder> result = new ArrayList<>();
+        if (list.isArray()) {
+            for (JsonNode node : list) {
+                long id = node.path("id").asLong(node.path("media_id").asLong());
+                if (id <= 0) {
+                    continue;
+                }
+                result.add(new FavoriteFolder(
+                        id,
+                        node.path("title").asText(""),
+                        node.path("media_count").asInt(0)
+                ));
+            }
+        }
+        return result;
+    }
+
+    public List<FavoriteVideo> fetchFavoriteVideos(long mediaId, int limit) {
+        int pageSize = Math.max(1, Math.min(limit, 20));
+        String url = FAVORITE_RESOURCES_URL
+                + "?media_id=" + mediaId + "&pn=1&ps=" + pageSize + "&platform=web";
+        JsonNode root = execute(baseRequest(url, "https://space.bilibili.com/")
+                .GET().build());
+        checkCode(root, "读取收藏夹内容");
+        JsonNode medias = root.path("data").path("medias");
+        List<FavoriteVideo> result = new ArrayList<>();
+        if (medias.isArray()) {
+            for (JsonNode node : medias) {
+                if (node.path("type").asInt(2) != 2) {
+                    continue;
+                }
+                long aid = node.path("id").asLong();
+                String bvid = node.path("bvid").asText("");
+                if (aid <= 0 || bvid.isBlank()) {
+                    continue;
+                }
+                result.add(new FavoriteVideo(
+                        aid,
+                        bvid,
+                        node.path("title").asText(""),
+                        node.path("intro").asText(""),
+                        node.path("upper").path("name").asText(""),
+                        node.path("cnt_info").path("play").asLong(0),
+                        node.path("cnt_info").path("collect").asLong(0),
+                        node.path("pubtime").asLong(0),
+                        node.path("duration").asLong(0)
+                ));
+            }
+        }
+        return result;
+    }
+
+    public List<RelatedVideo> fetchRelatedVideos(long aid, int limit, String sourceTitle) {
+        int max = Math.max(1, limit);
+        String url = RELATED_VIDEOS_URL + "?aid=" + aid;
+        JsonNode root = execute(baseRequest(url, "https://www.bilibili.com/video/av" + aid)
+                .GET().build());
+        checkCode(root, "读取相关视频");
+        List<RelatedVideo> result = new ArrayList<>();
+        JsonNode data = root.path("data");
+        if (data.isArray()) {
+            for (JsonNode node : data) {
+                if (result.size() >= max) {
+                    break;
+                }
+                long relatedAid = node.path("aid").asLong();
+                String bvid = node.path("bvid").asText("");
+                if (relatedAid <= 0 || bvid.isBlank()) {
+                    continue;
+                }
+                result.add(new RelatedVideo(
+                        relatedAid,
+                        bvid,
+                        node.path("title").asText(""),
+                        node.path("desc").asText(""),
+                        node.path("owner").path("name").asText(""),
+                        node.path("stat").path("view").asLong(0),
+                        node.path("stat").path("like").asLong(0),
+                        node.path("pubdate").asLong(0),
+                        node.path("duration").asLong(0),
+                        sourceTitle
+                ));
+            }
+        }
+        return result;
+    }
+
+    private void checkCode(JsonNode root, String action) {
+        int code = root.path("code").asInt(-1);
+        if (code != 0) {
+            throw new BilibiliApiException(code, 200,
+                    action + "失败: " + root.path("message").asText(""));
+        }
     }
 
     private HttpRequest.Builder baseRequest(String url, String referer) {

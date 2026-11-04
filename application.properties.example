@@ -133,3 +133,32 @@ app.state-file=data/state.json
 # 账号密码登录成功后的 Cookie 缓存，避免每次启动都重复人机验证。
 # 该文件包含登录凭据，请不要公开。
 app.session-file=data/session.json
+
+
+# ---------- 收藏夹推荐 ----------
+
+# 是否扫描主人的公开收藏夹，查找相关视频并写入推荐文件。
+# 只读取公开收藏夹；私密收藏夹需要主人账号权限，当前不支持。
+recommend.enabled=false
+
+# 每隔多少分钟扫描一次，默认 12 小时。
+recommend.interval-minutes=720
+
+# 最多扫描多少个收藏夹。留空 favorite-folders 时自动取前 N 个公开收藏夹。
+recommend.max-folders=5
+
+# 每个收藏夹取最近多少个视频作为偏好样本。
+recommend.samples-per-folder=5
+
+# 每个样本视频最多取多少个相关推荐。
+recommend.related-limit=10
+
+# 每次最多保留多少个推荐结果，以及 AI 评分门槛（0-100）。
+recommend.max-results=3
+recommend.min-score=70
+
+# 指定收藏夹 media_id，逗号分隔；留空表示自动选择公开收藏夹。
+recommend.favorite-folders=
+
+# 推荐结果输出文件，只写日志和 JSON，不会自动私聊发送。
+recommend.output-file=data/recommendations.json
