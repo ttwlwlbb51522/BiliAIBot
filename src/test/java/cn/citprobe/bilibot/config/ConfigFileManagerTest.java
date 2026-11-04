@@ -60,7 +60,8 @@ class ConfigFileManagerTest {
         assertTrue(content.contains("# 用户自己的注释"));
         assertTrue(content.contains("bilibili.poll-interval-seconds=60"), "不能覆盖用户值");
         assertTrue(content.contains("bilibili.dry-run=true"), "空值应补默认值");
-        assertTrue(content.contains("reply.fallback-text=嗯嗯，我在听，你继续说～"));
+        String expectedFallback = ConfigFileManager.templateDefaults().getProperty("reply.fallback-text");
+        assertTrue(content.contains("reply.fallback-text=" + expectedFallback));
         assertTrue(content.contains("deepseek.model=deepseek-chat"), "缺失键应补全");
         assertTrue(content.contains("# ===== 以下配置项由程序自动补全"));
 
@@ -105,7 +106,8 @@ class ConfigFileManagerTest {
         assertEquals(file.getParent().resolve("persona.txt").toAbsolutePath().normalize(),
                 config.reply().systemPromptFile());
         assertEquals(120, config.bilibili().firstRunGraceSeconds());
-        assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());
+        assertEquals(ConfigFileManager.templateDefaults().getProperty("reply.fallback-text"),
+                config.reply().fallbackText());
         assertTrue(config.bilibili().dryRun());
     }
 
