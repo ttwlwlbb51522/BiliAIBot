@@ -27,7 +27,7 @@ class PromptBuilderTest {
                 "SESSDATA=x; bili_jct=y", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
                 45, 20, "https://api.bilibili.com/x/msgfeed/at",
                 "https://api.bilibili.com/x/msgfeed/reply",
-                true, false, true, false, 120, 120, 12, true, List.of("小深"), 3
+                true, false, false, 60, 8, true, false, 120, 120, 12, true, List.of("小深"), 3
         );
     }
 

@@ -2,6 +2,7 @@ package cn.citprobe.bilibot;
 
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.config.AppConfig;
+import cn.citprobe.bilibot.pm.PrivateMessageService;
 import cn.citprobe.bilibot.recommend.RecommendationService;
 import cn.citprobe.bilibot.service.BotService;
 import org.slf4j.Logger;
@@ -23,20 +24,28 @@ public final class BotRunner {
     private final AppConfig config;
     private final BotService service;
     private final RecommendationService recommendationService;
+    private final PrivateMessageService privateMessageService;
     private final ScheduledExecutorService scheduler;
     private final ScheduledExecutorService recommendationScheduler;
+    private final ScheduledExecutorService privateMessageScheduler;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile long lastAuthLogAt;
     private volatile long lastRiskLogAt;
 
     public BotRunner(AppConfig config, BotService service) {
-        this(config, service, null);
+        this(config, service, null, null);
     }
 
     public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService) {
+        this(config, service, recommendationService, null);
+    }
+
+    public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService,
+                     PrivateMessageService privateMessageService) {
         this.config = config;
         this.service = service;
         this.recommendationService = recommendationService;
+        this.privateMessageService = privateMessageService;
         AtomicInteger counter = new AtomicInteger();
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-poll-" + counter.incrementAndGet());
@@ -45,6 +54,11 @@ public final class BotRunner {
         });
         this.recommendationScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-recommend");
+            thread.setDaemon(false);
+            return thread;
+        });
+        this.privateMessageScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "bili-deepseek-private-message");
             thread.setDaemon(false);
             return thread;
         });
@@ -66,6 +80,14 @@ public final class BotRunner {
                     60,
                     config.recommendation().intervalMinutes(),
                     TimeUnit.MINUTES
+            );
+        }
+        if (privateMessageService != null && config.bilibili().privateMessageEnabled()) {
+            privateMessageScheduler.scheduleWithFixedDelay(
+                    this::privateMessageSafely,
+                    30,
+                    config.bilibili().privateMessagePollSeconds(),
+                    TimeUnit.SECONDS
             );
         }
     }
@@ -107,6 +129,15 @@ public final class BotRunner {
         }
     }
 
+    private void privateMessageSafely() {
+        try {
+            privateMessageService.runOnce();
+        } catch (Exception e) {
+            log.warn("[私聊] 本轮拉取失败: {}", e.getMessage());
+            log.debug("私聊轮询异常详情", e);
+        }
+    }
+
     private static boolean shouldLog(long lastAt) {
         return System.currentTimeMillis() - lastAt >= 300_000L;
     }
@@ -117,11 +148,13 @@ public final class BotRunner {
         }
         scheduler.shutdownNow();
         recommendationScheduler.shutdownNow();
+        privateMessageScheduler.shutdownNow();
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                 log.warn("轮询线程未在 5 秒内停止");
             }
             recommendationScheduler.awaitTermination(5, TimeUnit.SECONDS);
+            privateMessageScheduler.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

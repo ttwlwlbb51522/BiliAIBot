@@ -61,7 +61,7 @@ class BilibiliClientTest {
                 "SESSDATA=abc; bili_jct=def", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
                 45, 5, "http://127.0.0.1:" + server.getAddress().getPort() + "/at",
                 "http://127.0.0.1:" + server.getAddress().getPort() + "/reply",
-                true, false, true, false, 120, 120, 12, true, List.of(), 3
+                true, false, false, 60, 8, true, false, 120, 120, 12, true, List.of(), 3
         );
         BilibiliClient client = new BilibiliClient(config);
 
@@ -121,7 +121,7 @@ class BilibiliClientTest {
                 "SESSDATA=abc; bili_jct=def", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
                 45, 5, "http://127.0.0.1:" + server.getAddress().getPort() + "/at",
                 "http://127.0.0.1:" + server.getAddress().getPort() + "/reply",
-                true, false, true, false, 120, 120, 12, true, List.of(), 3
+                true, false, false, 60, 8, true, false, 120, 120, 12, true, List.of(), 3
         );
         BilibiliClient client = new BilibiliClient(config);
 
@@ -178,7 +178,7 @@ class BilibiliClientTest {
         String base = "http://127.0.0.1:" + server.getAddress().getPort();
         AppConfig.Bilibili config = new AppConfig.Bilibili(
                 "SESSDATA=abc; bili_jct=def", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
-                45, 5, base + "/at", base + "/reply", true, false, true, false, 120, 120, 12, true, List.of(), 3
+                45, 5, base + "/at", base + "/reply", true, false, false, 60, 8, true, false, 120, 120, 12, true, List.of(), 3
         );
         BilibiliClient client = new BilibiliClient(config, base + "/nav", base + "/reply/add", base + "/thread");
 

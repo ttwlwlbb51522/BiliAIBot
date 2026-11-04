@@ -12,7 +12,7 @@ MAJOR.MINOR.PATCH
 | 变更类型 | 递增位置 | 示例 | 说明 |
 | --- | --- | --- | --- |
 | 大更新 | 第一位 `MAJOR` | `1.4.2` → `2.0.0` | 不兼容变更：配置格式破坏、核心架构重写、重大行为变化 |
-| 小更新 | 第二位 `MINOR` | `1.5.0` → `1.6.0` | 向后兼容的新功能 |
+| 小更新 | 第二位 `MINOR` | `1.6.0` → `1.7.0` | 向后兼容的新功能 |
 | Bug 修复 | 第三位 `PATCH` | `1.4.2` → `1.4.3` | 修复缺陷、文档修正、不影响接口的小调整 |
 
 规则：
@@ -25,7 +25,7 @@ MAJOR.MINOR.PATCH
 ## 当前版本
 
 ```text
-1.6.0
+1.7.0
 ```
 
 ## 发布流程
@@ -53,10 +53,10 @@ mvn clean package
 
 ```bash
 git add .
-git commit -m "chore(release): v1.6.0"
-git tag -a v1.6.0 -m "v1.6.0"
+git commit -m "chore(release): v1.7.0"
+git tag -a v1.7.0 -m "v1.7.0"
 git push origin master
-git push origin v1.6.0
+git push origin v1.7.0
 ```
 
 也可以使用 PowerShell 脚本自动提交并打标签：
@@ -74,7 +74,7 @@ feat: 新增二维码登录
 fix: 修复 Cookie 过期后不重试的问题
 docs: 更新 Linux 部署说明
 refactor: 重构登录服务
-chore(release): v1.6.0
+chore(release): v1.7.0
 ```
 
 ## 分支与标签

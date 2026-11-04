@@ -38,6 +38,9 @@ class ConfigLoaderTest {
         assertEquals("auto", config.bilibili().loginType());
         assertTrue(config.bilibili().replyFeedEnabled());
         assertFalse(config.bilibili().allowOtherUsers());
+        assertFalse(config.bilibili().privateMessageEnabled());
+        assertEquals(60, config.bilibili().privateMessagePollSeconds());
+        assertEquals(8, config.bilibili().privateMessageHistorySize());
         assertEquals("https://api.bilibili.com/x/msgfeed/reply", config.bilibili().replyFeedUrl());
         assertFalse(config.reply().mentionOwner(), "默认回复不应 @ 主人");
         assertFalse(config.recommendation().enabled());

@@ -5,6 +5,8 @@ import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.config.ConfigException;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteFolder;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteVideo;
+import cn.citprobe.bilibot.pm.PrivateMessageModels.PrivateMessage;
+import cn.citprobe.bilibot.pm.PrivateMessageModels.PrivateSession;
 import cn.citprobe.bilibot.recommend.RecommendationModels.RelatedVideo;
 import cn.citprobe.bilibot.util.Json;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * B 站 Web API 客户端，只依赖 Cookie 登录态。
@@ -43,6 +46,12 @@ public final class BilibiliClient {
             "https://api.bilibili.com/x/v3/fav/resource/list";
     private static final String RELATED_VIDEOS_URL =
             "https://api.bilibili.com/x/web-interface/archive/related";
+    private static final String PRIVATE_SESSIONS_URL =
+            "https://api.vc.bilibili.com/session_svr/v1/session_svr/get_sessions";
+    private static final String PRIVATE_MESSAGES_URL =
+            "https://api.vc.bilibili.com/svr_sync/v1/svr_sync/fetch_session_msgs";
+    private static final String PRIVATE_SEND_URL =
+            "https://api.vc.bilibili.com/web_im/v1/web_im/send_msg";
 
     private final AppConfig.Bilibili config;
     private final HttpClient http;
@@ -187,6 +196,86 @@ public final class BilibiliClient {
         long rpid = response.data() == null ? 0 : response.data().rpid();
         log.debug("B站回复发表成功，rpid={}", rpid);
         return rpid;
+    }
+
+    public List<PrivateSession> fetchPrivateSessions() {
+        String url = PRIVATE_SESSIONS_URL
+                + "?session_type=1&group_id=0&build=0&mobi_app=web";
+        JsonNode root = execute(baseRequest(url, "https://message.bilibili.com/")
+                .GET().build());
+        checkCode(root, "读取私信会话");
+        JsonNode list = root.path("data").path("session_list");
+        List<PrivateSession> result = new ArrayList<>();
+        if (list.isArray()) {
+            for (JsonNode node : list) {
+                long talkerId = node.path("talker_id").asLong();
+                if (talkerId <= 0) {
+                    continue;
+                }
+                result.add(new PrivateSession(
+                        talkerId,
+                        node.path("unread_count").asInt(0),
+                        node.path("at_time").asLong(0)
+                ));
+            }
+        }
+        return result;
+    }
+
+    public List<PrivateMessage> fetchPrivateMessages(long talkerId, int size) {
+        int pageSize = Math.max(1, Math.min(size, 30));
+        String url = PRIVATE_MESSAGES_URL
+                + "?session_type=1&talker_id=" + talkerId
+                + "&session_id=0&size=" + pageSize + "&build=0&mobi_app=web";
+        JsonNode root = execute(baseRequest(url, "https://message.bilibili.com/")
+                .GET().build());
+        checkCode(root, "读取私信内容");
+        JsonNode list = root.path("data").path("messages");
+        List<PrivateMessage> result = new ArrayList<>();
+        if (list.isArray()) {
+            for (JsonNode node : list) {
+                result.add(new PrivateMessage(
+                        node.path("msg_key").asText(""),
+                        node.path("sender_uid").asLong(0),
+                        node.path("msg_type").asInt(0),
+                        node.path("content").asText(""),
+                        node.path("timestamp").asLong(0)
+                ));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 发送纯文本私信。B 站私信接口不是公开稳定接口，可能受风控限制。
+     */
+    public void sendPrivateMessage(long senderUid, long receiverUid, String text) {
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("msg[sender_uid]", Long.toString(senderUid));
+        form.put("msg[receiver_id]", Long.toString(receiverUid));
+        form.put("msg[receiver_type]", "1");
+        form.put("msg[msg_type]", "1");
+        form.put("msg[msg_status]", "0");
+        try {
+            form.put("msg[content]", mapper.writeValueAsString(Map.of("content", text)));
+        } catch (IOException e) {
+            throw new BilibiliApiException(-1, 0, "序列化私信内容失败: " + e.getMessage());
+        }
+        form.put("msg[timestamp]", Long.toString(System.currentTimeMillis() / 1000));
+        form.put("msg[dev_id]", UUID.randomUUID().toString().toUpperCase());
+        form.put("csrf", csrf);
+        form.put("csrf_token", csrf);
+        form.put("build", "0");
+        form.put("mobi_app", "web");
+        form.put("platform", "web");
+
+        HttpRequest request = baseRequest(PRIVATE_SEND_URL, "https://message.bilibili.com/")
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("Origin", "https://message.bilibili.com")
+                .POST(HttpRequest.BodyPublishers.ofString(encodeForm(form), StandardCharsets.UTF_8))
+                .build();
+        JsonNode root = execute(request);
+        checkCode(root, "发送私信");
     }
 
     /**

@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.6.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.7.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -25,6 +25,7 @@
 - Minecraft 服务端风格后台控制台，支持 `stop`、`status`、`version`、`help`。
 - 后台日志详细记录 @ 接收、过滤、Prompt 构造、DeepSeek 调用和评论发送过程。
 - 可扫描主人公开收藏夹，结合相关视频和 DeepSeek 评分生成推荐，写入日志和 JSON 文件。
+- 支持私聊自动回复：任何人都可以私聊机器人，网友同样称呼为“网友”。
 - 回复直接发在主人评论下方（正确设置 `root` / `parent`），不会另起一条一级评论。
 - 自动清理 Markdown、限制 1000 字以内、避免截断 emoji。
 - 本地状态文件去重，重启后不会重复回复同一条评论。
@@ -351,6 +352,8 @@ sudo systemctl stop bilibili-bot
 [处理] 回复整理完成: N 字
 [发送] 正在发表评论: oid=... type=... root=... parent=...
 [发送] 成功: event=... 新评论 rpid=... 总耗时=...ms
+[私聊] 收到 用户=网友 UID=... 内容=...
+[私聊] 已回复 用户=网友 UID=... 内容=...
 ```
 
 非主人 @、未命中触发条件、过期评论也会用 `[过滤]` 或 `[处理]` 日志说明原因。相同的通知不会在每个轮询周期重复打印。
@@ -384,6 +387,30 @@ sudo systemctl stop bilibili-bot
 - “有意思”是按标题、简介、UP 和收藏偏好由 AI 评分，并不会真正观看视频。
 - 当前只写日志和 JSON 文件，**不会自动私聊发送**。
 - 第一次扫描在启动约 60 秒后执行，之后按 `recommend.interval-minutes` 间隔执行。
+
+### 私聊自动回复
+
+开启后，程序会轮询 B 站私信会话：
+
+- 任何人都可以私聊机器人；
+- 主人发来的私聊称呼“主人”；
+- 其他人称呼“网友”，不会叫“主人”；
+- 读取最近几条聊天记录作为上下文；
+- 通过 DeepSeek 生成回复，再发送回同一个私聊会话。
+
+日志示例：
+
+```text
+[私聊] 收到 用户=主人 UID=123456 内容=在吗
+[私聊] 已回复 用户=主人 UID=123456 内容=（尾巴一摆）本鱼在呢...
+```
+
+限制：
+
+- B 站私聊收发使用的是非公开接口，可能受风控、账号限制或接口变更影响。
+- 私聊发送受 `bilibili.dry-run` 控制；dry-run 时只打印拟回复，不实际发送。
+- 首次启动会跳过已存在的历史私聊，避免上线时突然回复一堆旧消息。
+- 默认每个轮询周期最多处理 10 个会话。
 
 ### 5.1 Linux 服务器部署（systemd）
 
@@ -521,6 +548,9 @@ sudo systemctl status bilibili-bot
 | `bilibili.require-bot-mention`     | `true`  | @ 通知是否额外校验确实 @ 了机器人；回复续聊不受此限制              |
 | `bilibili.reply-feed-enabled`      | `true`  | 是否监听“回复我的”，主人回复机器人评论时继续对话                  |
 | `bilibili.allow-other-users`       | `false` | 是否允许主人以外的人 @ 机器人对话；网友不会被称呼为“主人”            |
+| `bilibili.private-message-enabled` | `false` | 是否开启私聊自动回复，任何人都可以私聊机器人                     |
+| `bilibili.private-message-poll-seconds` | `60` | 私聊轮询间隔，最小 10 秒                       |
+| `bilibili.private-message-history-size` | `8` | 每次读取多少条私聊作为上下文                         |
 | `bilibili.process-existing`        | `false` | 首次启动是否处理已存在的 @/回复                          |
 | `bilibili.first-run-grace-seconds` | `120`   | 首次启动时，最近多少秒内的 @/回复 仍视为新消息                  |
 | `bilibili.max-mention-age-minutes` | `120`   | 超过此时间的 @/回复 不再回复                           |
@@ -854,7 +884,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.6.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.7.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

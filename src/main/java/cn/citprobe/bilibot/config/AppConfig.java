@@ -23,6 +23,9 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             String replyFeedUrl,
             boolean replyFeedEnabled,
             boolean allowOtherUsers,
+            boolean privateMessageEnabled,
+            int privateMessagePollSeconds,
+            int privateMessageHistorySize,
             boolean requireBotMention,
             boolean processExisting,
             int firstRunGraceSeconds,
@@ -35,8 +38,10 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
         public Bilibili withCookie(String runtimeCookie) {
             return new Bilibili(runtimeCookie, username, password, loginType, ownerUid, userAgent,
                     referer, pollIntervalSeconds, requestTimeoutSeconds, atFeedUrl, replyFeedUrl,
-                    replyFeedEnabled, allowOtherUsers, requireBotMention, processExisting, firstRunGraceSeconds,
-                    maxMentionAgeMinutes, threadContextSize, dryRun, triggerAliases, maxAttempts);
+                    replyFeedEnabled, allowOtherUsers, privateMessageEnabled,
+                    privateMessagePollSeconds, privateMessageHistorySize, requireBotMention,
+                    processExisting, firstRunGraceSeconds, maxMentionAgeMinutes, threadContextSize,
+                    dryRun, triggerAliases, maxAttempts);
         }
     }
 
