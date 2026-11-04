@@ -78,8 +78,16 @@ public final class BilibiliClient {
     }
 
     public List<BilibiliDtos.MsgFeedItem> fetchAtMessages() {
-        String separator = config.atFeedUrl().contains("?") ? "&" : "?";
-        String url = config.atFeedUrl() + separator
+        return fetchMessages(config.atFeedUrl(), "@");
+    }
+
+    public List<BilibiliDtos.MsgFeedItem> fetchReplyMessages() {
+        return fetchMessages(config.replyFeedUrl(), "回复");
+    }
+
+    private List<BilibiliDtos.MsgFeedItem> fetchMessages(String feedUrl, String label) {
+        String separator = feedUrl.contains("?") ? "&" : "?";
+        String url = feedUrl + separator
                 + "build=0&mobi_app=web&platform=web&web_location=333.1387";
         HttpRequest request = baseRequest(url, "https://message.bilibili.com/")
                 .GET()
@@ -88,7 +96,7 @@ public final class BilibiliClient {
         BilibiliDtos.MsgFeedResponse response = treeToValue(root, BilibiliDtos.MsgFeedResponse.class);
         if (response.code() != 0) {
             throw new BilibiliApiException(response.code(), 200,
-                    "获取 @ 消息失败: " + nullToEmpty(response.message()));
+                    "获取 " + label + " 消息失败: " + nullToEmpty(response.message()));
         }
         if (response.data() == null || response.data().items() == null) {
             return List.of();

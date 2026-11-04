@@ -26,7 +26,8 @@ class PromptBuilderTest {
         return new AppConfig.Bilibili(
                 "SESSDATA=x; bili_jct=y", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
                 45, 20, "https://api.bilibili.com/x/msgfeed/at",
-                true, false, 120, 120, 12, true, List.of("小深"), 3
+                "https://api.bilibili.com/x/msgfeed/reply",
+                true, true, false, 120, 120, 12, true, List.of("小深"), 3
         );
     }
 

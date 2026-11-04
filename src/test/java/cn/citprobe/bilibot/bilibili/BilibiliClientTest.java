@@ -28,6 +28,52 @@ class BilibiliClientTest {
     }
 
     @Test
+    void parsesReplyFeedWithReplyTime() throws Exception {
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/reply", exchange -> respond(exchange, """
+                {
+                  "code": 0,
+                  "message": "0",
+                  "data": {
+                    "items": [{
+                      "id": 456,
+                      "user": {"mid": 7, "nickname": "主人"},
+                      "item": {
+                        "subject_id": 999,
+                        "root_id": 100,
+                        "source_id": 101,
+                        "target_id": 42,
+                        "type": "reply",
+                        "business_id": 1,
+                        "title": "标题",
+                        "uri": "https://www.bilibili.com/video/BV1xx#reply101",
+                        "source_content": "本鱼继续说",
+                        "at_details": []
+                      },
+                      "reply_time": 1700000003
+                    }]
+                  }
+                }
+                """));
+        server.start();
+
+        AppConfig.Bilibili config = new AppConfig.Bilibili(
+                "SESSDATA=abc; bili_jct=def", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
+                45, 5, "http://127.0.0.1:" + server.getAddress().getPort() + "/at",
+                "http://127.0.0.1:" + server.getAddress().getPort() + "/reply",
+                true, true, false, 120, 120, 12, true, List.of(), 3
+        );
+        BilibiliClient client = new BilibiliClient(config);
+
+        BilibiliDtos.MsgFeedItem item = client.fetchReplyMessages().get(0);
+
+        assertEquals(101L, item.item().sourceId());
+        assertEquals(42L, item.item().targetId());
+        assertEquals(1700000003L, item.eventTime());
+        assertEquals("本鱼继续说", item.item().sourceContent());
+    }
+
+    @Test
     void parsesAtFeedWithAtTimeAndSnakeCaseFields() throws Exception {
         AtomicReference<String> query = new AtomicReference<>();
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -74,7 +120,8 @@ class BilibiliClientTest {
         AppConfig.Bilibili config = new AppConfig.Bilibili(
                 "SESSDATA=abc; bili_jct=def", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
                 45, 5, "http://127.0.0.1:" + server.getAddress().getPort() + "/at",
-                true, false, 120, 120, 12, true, List.of(), 3
+                "http://127.0.0.1:" + server.getAddress().getPort() + "/reply",
+                true, true, false, 120, 120, 12, true, List.of(), 3
         );
         BilibiliClient client = new BilibiliClient(config);
 
@@ -131,7 +178,7 @@ class BilibiliClientTest {
         String base = "http://127.0.0.1:" + server.getAddress().getPort();
         AppConfig.Bilibili config = new AppConfig.Bilibili(
                 "SESSDATA=abc; bili_jct=def", "", "", "auto", 7L, "ua", "https://www.bilibili.com/",
-                45, 5, base + "/at", true, false, 120, 120, 12, true, List.of(), 3
+                45, 5, base + "/at", base + "/reply", true, true, false, 120, 120, 12, true, List.of(), 3
         );
         BilibiliClient client = new BilibiliClient(config, base + "/nav", base + "/reply/add", base + "/thread");
 

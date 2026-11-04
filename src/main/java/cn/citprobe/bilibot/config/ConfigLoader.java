@@ -99,6 +99,9 @@ public final class ConfigLoader {
 
         String atFeedUrl = string(props, "bilibili.at-feed-url", "https://api.bilibili.com/x/msgfeed/at");
         validateHttpUrl(atFeedUrl, "bilibili.at-feed-url");
+        String replyFeedUrl = string(props, "bilibili.reply-feed-url",
+                "https://api.bilibili.com/x/msgfeed/reply");
+        validateHttpUrl(replyFeedUrl, "bilibili.reply-feed-url");
 
         int pollInterval = intInRange(props, "bilibili.poll-interval-seconds", 45, 10, 3600);
         int requestTimeout = intInRange(props, "bilibili.request-timeout-seconds", 20, 3, 300);
@@ -139,6 +142,8 @@ public final class ConfigLoader {
                         pollInterval,
                         requestTimeout,
                         atFeedUrl,
+                        replyFeedUrl,
+                        bool(props, "bilibili.reply-feed-enabled", true),
                         bool(props, "bilibili.require-bot-mention", true),
                         bool(props, "bilibili.process-existing", false),
                         firstRunGrace,

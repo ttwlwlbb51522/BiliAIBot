@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.3.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.4.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -15,7 +15,8 @@
 - 登录后如触发 B 站安全验证，会把验证链接打印到控制台，手动完成后继续登录。
 - 也支持传统 Cookie 登录，作为密码登录失败时的备用方式。
 - 可配置**主人账号 UID**，只有该 UID 的 @ 才会触发。
-- 通过 B 站「@ 我的」消息接口轮询，支持视频、动态、专栏、音频等评论区的类型识别。
+- 主人在机器人回复下面继续回复时，**无需再次 @**，也能自动接着聊。
+- 通过 B 站「@ 我的」和「回复我的」消息接口轮询，支持视频、动态、专栏、音频等评论区的类型识别。
 - 调用 DeepSeek `chat/completions` 生成回复，支持自定义模型、温度、最大 token。
 - 自动读取同一根评论下的最近对话，让 AI 能接上上下文聊天。
 - 内置「蓝色大肥鱼」角色人设，也支持自由修改系统提示词。
@@ -36,7 +37,8 @@
 
 ```
 ┌─────────────────────┐
-│ B站 @ 消息接口       │  GET /x/msgfeed/at
+│ B站 @/回复消息接口    │  GET /x/msgfeed/at
+│                     │  GET /x/msgfeed/reply
 └──────────┬──────────┘
            │ 每 45 秒轮询
            ▼
@@ -329,12 +331,14 @@ sudo systemctl stop bilibili-bot
 
 ### 运行日志
 
-每条新的 @ 通知和后续处理过程都会输出到控制台和 `logs/bot.log`，主要阶段：
+每条新的 @ 通知、回复通知和后续处理过程都会输出到控制台和 `logs/bot.log`，主要阶段：
 
 ```text
 [接收] @通知 event=... 用户=... 内容=...
+[接收] 回复通知 event=... 用户=... 内容=...
 [接收] 目标: 标题=... 评论区类型=... oid=... root=... source=...
 [过滤] 命中主人 @: ...
+[过滤] 命中主人回复机器人评论: ...
 [处理] 开始: ...
 [处理] 评论串上下文: N 条
 [处理] Prompt 构造完成: 2 条消息, N 字
@@ -345,7 +349,9 @@ sudo systemctl stop bilibili-bot
 [发送] 成功: event=... 新评论 rpid=... 总耗时=...ms
 ```
 
-非主人 @、未命中触发条件、过期评论也会用 `[过滤]` 或 `[处理]` 日志说明原因。相同的 @ 通知不会在每个轮询周期重复打印。
+非主人 @、未命中触发条件、过期评论也会用 `[过滤]` 或 `[处理]` 日志说明原因。相同的通知不会在每个轮询周期重复打印。
+
+主人直接在机器人回复下面回复时，`[接收] 回复通知` 会记录该消息；即使没有 @ 机器人，也会继续生成回复。
 
 日志包含评论和回复内容，请妥善保护 `logs/` 目录。
 
@@ -482,10 +488,11 @@ sudo systemctl status bilibili-bot
 | `bilibili.password`                | 空       | 机器人账号密码（明文，注意保护）                           |
 | `bilibili.cookie`                  | 空       | 备用登录方式，完整 Cookie，必须含 `SESSDATA`、`bili_jct` |
 | `bilibili.owner-uid`               | `0`     | 主人 UID，只有这个 UID 能触发                        |
-| `bilibili.require-bot-mention`     | `true`  | 是否额外校验确实 @ 了机器人                            |
-| `bilibili.process-existing`        | `false` | 首次启动是否处理已存在的 @                             |
-| `bilibili.first-run-grace-seconds` | `120`   | 首次启动时，最近多少秒内的 @ 仍视为新消息                     |
-| `bilibili.max-mention-age-minutes` | `120`   | 超过此时间的 @ 不再回复                              |
+| `bilibili.require-bot-mention`     | `true`  | @ 通知是否额外校验确实 @ 了机器人；回复续聊不受此限制             |
+| `bilibili.reply-feed-enabled`      | `true`  | 是否监听“回复我的”，主人回复机器人评论时继续对话                  |
+| `bilibili.process-existing`        | `false` | 首次启动是否处理已存在的 @/回复                          |
+| `bilibili.first-run-grace-seconds` | `120`   | 首次启动时，最近多少秒内的 @/回复 仍视为新消息                 |
+| `bilibili.max-mention-age-minutes` | `120`   | 超过此时间的 @/回复 不再回复                           |
 | `bilibili.poll-interval-seconds`   | `45`    | 轮询间隔，最小 10 秒                               |
 | `bilibili.request-timeout-seconds` | `20`    | B 站请求超时                                    |
 | `bilibili.thread-context-size`     | `12`    | 读取多少条同串回复作为上下文，0 关闭                        |
@@ -493,6 +500,7 @@ sudo systemctl status bilibili-bot
 | `bilibili.trigger-aliases`         | 空       | 额外触发别名，逗号分隔                                |
 | `bilibili.dry-run`                 | `true`  | 只写日志，不实际发评论                                |
 | `bilibili.at-feed-url`             | 官方      | @ 消息接口，一般不改                                |
+| `bilibili.reply-feed-url`          | 官方      | “回复我的”消息接口，一般不改                          |
 
 ### DeepSeek
 
@@ -791,7 +799,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.3.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.4.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

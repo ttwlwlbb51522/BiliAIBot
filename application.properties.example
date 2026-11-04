@@ -61,6 +61,9 @@ bilibili.max-mention-age-minutes=120
 # 是否要求评论内容或 at 详情中确实包含对机器人的 @。
 bilibili.require-bot-mention=true
 
+# 是否监听“回复我的”：主人直接在机器人回复下继续回复时，无需 @ 也能继续对话。
+bilibili.reply-feed-enabled=true
+
 # 读取评论串中最近多少条回复作为上下文，0 表示关闭。
 bilibili.thread-context-size=12
 
@@ -116,6 +119,9 @@ bilibili.referer=https://www.bilibili.com/
 
 # @ 消息接口地址，一般不需要修改。
 bilibili.at-feed-url=https://api.bilibili.com/x/msgfeed/at
+
+# 回复消息接口地址，一般不需要修改。
+bilibili.reply-feed-url=https://api.bilibili.com/x/msgfeed/reply
 
 # 去重状态文件路径。相对路径以程序工作目录为基准。
 app.state-file=data/state.json

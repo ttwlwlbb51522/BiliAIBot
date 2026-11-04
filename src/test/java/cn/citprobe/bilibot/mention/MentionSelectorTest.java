@@ -27,6 +27,8 @@ class MentionSelectorTest {
                 45,
                 20,
                 "https://api.bilibili.com/x/msgfeed/at",
+                "https://api.bilibili.com/x/msgfeed/reply",
+                true,
                 requireMention,
                 false,
                 120,
@@ -59,6 +61,18 @@ class MentionSelectorTest {
     @Test
     void acceptsConfiguredAlias() {
         assertTrue(MentionSelector.isEligible(event(7L, "@小深 你好", Set.of()), bot, config));
+    }
+
+    @Test
+    void acceptsOwnerReplyWithoutMention() {
+        assertTrue(MentionSelector.isEligibleReply(
+                event(7L, "本鱼继续说", Set.of()), bot, config));
+    }
+
+    @Test
+    void rejectsOtherUsersForReplyContinuation() {
+        assertFalse(MentionSelector.isEligibleReply(
+                event(8L, "本鱼继续说", Set.of()), bot, config));
     }
 
     @Test

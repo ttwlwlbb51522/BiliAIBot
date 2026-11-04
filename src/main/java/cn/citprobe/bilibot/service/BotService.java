@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +65,24 @@ public final class BotService {
     }
 
     public void runOnce() {
-        List<BilibiliDtos.MsgFeedItem> rawItems = bilibili.fetchAtMessages();
-        List<MentionEvent> eligible = selectMentions(rawItems);
-        eligible = initializeIfNeeded(eligible);
+        List<MentionEvent> atEvents = selectMentions(bilibili.fetchAtMessages());
+        List<MentionEvent> replyEvents = List.of();
+        if (config.bilibili().replyFeedEnabled()) {
+            try {
+                replyEvents = selectReplyMentions(bilibili.fetchReplyMessages());
+            } catch (BilibiliApiException e) {
+                log.warn("[接收] 拉取“回复我的”通知失败，本轮继续处理 @ 消息: {}", e.getMessage());
+            }
+        }
+
+        Map<Long, MentionEvent> merged = new LinkedHashMap<>();
+        for (MentionEvent event : atEvents) {
+            merged.putIfAbsent(event.sourceRpid(), event);
+        }
+        for (MentionEvent event : replyEvents) {
+            merged.putIfAbsent(event.sourceRpid(), event);
+        }
+        List<MentionEvent> eligible = initializeIfNeeded(new ArrayList<>(merged.values()));
 
         eligible.sort(Comparator
                 .comparingLong((MentionEvent e) -> e.replyTime() > 0 ? e.replyTime() : Long.MAX_VALUE)
@@ -81,7 +97,7 @@ public final class BotService {
         List<MentionEvent> result = new ArrayList<>();
         for (BilibiliDtos.MsgFeedItem raw : rawItems) {
             Optional<MentionEvent> mapped = MentionEventFactory.from(raw);
-            logReceived(raw, mapped.orElse(null));
+            logReceived(raw, mapped.orElse(null), "@通知");
             if (mapped.isEmpty()) {
                 log.warn("[过滤] 无法解析 @ 通知: event={}，可能缺少 source_id/subject_id/正文",
                         raw == null ? 0 : raw.id());
@@ -110,7 +126,35 @@ public final class BotService {
         return result;
     }
 
-    private void logReceived(BilibiliDtos.MsgFeedItem raw, MentionEvent event) {
+    private List<MentionEvent> selectReplyMentions(List<BilibiliDtos.MsgFeedItem> rawItems) {
+        List<MentionEvent> result = new ArrayList<>();
+        for (BilibiliDtos.MsgFeedItem raw : rawItems) {
+            Optional<MentionEvent> mapped = MentionEventFactory.from(raw);
+            logReceived(raw, mapped.orElse(null), "回复通知");
+            if (mapped.isEmpty()) {
+                log.warn("[过滤] 无法解析回复通知: event={}，可能缺少 source_id/subject_id/正文",
+                        raw == null ? 0 : raw.id());
+                continue;
+            }
+            MentionEvent event = mapped.get();
+            if (event.authorUid() != config.bilibili().ownerUid()) {
+                log.debug("[过滤] 非主人回复，忽略: event={}, 用户={}({})",
+                        event.eventId(), event.authorName(), event.authorUid());
+                continue;
+            }
+            if (!MentionSelector.isEligibleReply(event, bot, config.bilibili())) {
+                log.info("[过滤] 回复通知未满足续聊条件，忽略: event={}, 内容={}",
+                        event.eventId(), preview(event.content()));
+                continue;
+            }
+            log.info("[过滤] 命中主人回复机器人评论: event={}, 评论={}, 类型={}, 内容={}",
+                    event.eventId(), event.sourceRpid(), event.commentType(), preview(event.content()));
+            result.add(event);
+        }
+        return result;
+    }
+
+    private void logReceived(BilibiliDtos.MsgFeedItem raw, MentionEvent event, String label) {
         if (raw == null || raw.id() <= 0 || !loggedEventIds.add(raw.id())) {
             return;
         }
@@ -122,7 +166,8 @@ public final class BotService {
         String content = item == null ? "" : item.sourceContent();
         String title = item == null ? "" : item.title();
         String uri = item == null ? "" : item.uri();
-        log.info("[接收] @通知 event={} 用户={}({}) 内容={}",
+        log.info("[接收] {} event={} 用户={}({}) 内容={}",
+                label,
                 raw.id(),
                 raw.user() == null ? "未知" : raw.user().nickname(),
                 raw.user() == null ? 0 : raw.user().mid(),
@@ -145,7 +190,7 @@ public final class BotService {
     }
 
     /**
-     * 首次启动时默认不处理历史 @，但保留最近两分钟内到达的消息，方便启动后立即测试。
+     * 首次启动时默认不处理历史 @/回复，但保留最近两分钟内到达的消息，方便启动后立即测试。
      */
     private List<MentionEvent> initializeIfNeeded(List<MentionEvent> eligible) {
         if (state.isInitialized()) {
@@ -153,7 +198,7 @@ public final class BotService {
         }
         if (config.bilibili().processExisting()) {
             state.initialize();
-            log.info("首次启动：按配置处理已存在的 @ 消息（最多回溯 {} 分钟）",
+            log.info("首次启动：按配置处理已存在的 @/回复消息（最多回溯 {} 分钟）",
                     config.bilibili().maxMentionAgeMinutes());
             return eligible;
         }
@@ -169,7 +214,7 @@ public final class BotService {
                 .toList();
         state.initialize(skipped);
         if (!skipped.isEmpty()) {
-            log.info("首次启动：已跳过 {} 条历史 @（最近 {} 秒内的消息仍会处理；如需处理全部历史请设置 bilibili.process-existing=true）",
+            log.info("首次启动：已跳过 {} 条历史 @/回复（最近 {} 秒内的消息仍会处理；如需处理全部历史请设置 bilibili.process-existing=true）",
                     skipped.size(), config.bilibili().firstRunGraceSeconds());
         } else {
             log.info("首次启动：开始监听新的 @ 消息");

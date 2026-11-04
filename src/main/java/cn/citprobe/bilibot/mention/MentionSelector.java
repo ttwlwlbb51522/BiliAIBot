@@ -6,7 +6,7 @@ import cn.citprobe.bilibot.config.AppConfig;
 import java.util.Locale;
 
 /**
- * 判断一条 @ 通知是否满足回复条件：主人发出、确实 @ 了机器人、评论类型可识别。
+ * 判断通知是否满足回复条件：主人发出、评论类型可识别；@ 通知还要求确实 @ 了机器人。
  */
 public final class MentionSelector {
 
@@ -14,19 +14,7 @@ public final class MentionSelector {
     }
 
     public static boolean isEligible(MentionEvent event, BotIdentity bot, AppConfig.Bilibili config) {
-        if (event == null || bot == null) {
-            return false;
-        }
-        if (event.sourceRpid() <= 0 || event.subjectId() <= 0 || event.commentType() <= 0) {
-            return false;
-        }
-        if (event.authorUid() != config.ownerUid()) {
-            return false;
-        }
-        if (event.authorUid() == bot.mid()) {
-            return false;
-        }
-        if (event.content() == null || event.content().isBlank()) {
+        if (!isBasicOwnerEvent(event, bot, config)) {
             return false;
         }
         if (!config.requireBotMention()) {
@@ -45,6 +33,30 @@ public final class MentionSelector {
             }
         }
         return false;
+    }
+
+    /**
+     * 主人直接回复机器人评论时触发的续聊，不需要评论里再次 @ 机器人。
+     */
+    public static boolean isEligibleReply(MentionEvent event, BotIdentity bot, AppConfig.Bilibili config) {
+        return isBasicOwnerEvent(event, bot, config);
+    }
+
+    private static boolean isBasicOwnerEvent(MentionEvent event, BotIdentity bot,
+                                             AppConfig.Bilibili config) {
+        if (event == null || bot == null) {
+            return false;
+        }
+        if (event.sourceRpid() <= 0 || event.subjectId() <= 0 || event.commentType() <= 0) {
+            return false;
+        }
+        if (event.authorUid() != config.ownerUid()) {
+            return false;
+        }
+        if (event.authorUid() == bot.mid()) {
+            return false;
+        }
+        return event.content() != null && !event.content().isBlank();
     }
 
     static boolean containsMention(String content, String name) {
