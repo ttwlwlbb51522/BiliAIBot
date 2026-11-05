@@ -60,16 +60,27 @@ public final class BilibiliClient {
     private final String navUrl;
     private final String replyAddUrl;
     private final String threadReplyUrl;
+    private final TrafficGuard traffic;
 
     public BilibiliClient(AppConfig.Bilibili config) {
-        this(config, NAV_URL, REPLY_ADD_URL, THREAD_REPLY_URL);
+        this(config, NAV_URL, REPLY_ADD_URL, THREAD_REPLY_URL, null);
+    }
+
+    public BilibiliClient(AppConfig.Bilibili config, TrafficGuard traffic) {
+        this(config, NAV_URL, REPLY_ADD_URL, THREAD_REPLY_URL, traffic);
     }
 
     BilibiliClient(AppConfig.Bilibili config, String navUrl, String replyAddUrl, String threadReplyUrl) {
+        this(config, navUrl, replyAddUrl, threadReplyUrl, null);
+    }
+
+    BilibiliClient(AppConfig.Bilibili config, String navUrl, String replyAddUrl, String threadReplyUrl,
+                   TrafficGuard traffic) {
         this.config = config;
         this.navUrl = navUrl;
         this.replyAddUrl = replyAddUrl;
         this.threadReplyUrl = threadReplyUrl;
+        this.traffic = traffic;
         this.http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(Math.min(config.requestTimeoutSeconds(), 15)))
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -395,6 +406,13 @@ public final class BilibiliClient {
     }
 
     private JsonNode execute(HttpRequest request) {
+        if (traffic != null) {
+            if ("GET".equalsIgnoreCase(request.method())) {
+                traffic.beforeRead();
+            } else {
+                traffic.beforeWrite(null);
+            }
+        }
         HttpResponse<String> response;
         try {
             response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
@@ -406,6 +424,18 @@ public final class BilibiliClient {
         }
 
         int status = response.statusCode();
+        if (traffic != null) {
+            long retryAfter = response.headers().firstValue("Retry-After")
+                    .map(value -> {
+                        try {
+                            return Long.parseLong(value.trim());
+                        } catch (NumberFormatException ignored) {
+                            return 0L;
+                        }
+                    })
+                    .orElse(0L);
+            traffic.afterResponse(status, retryAfter);
+        }
         String body = stripBom(response.body());
         if (body == null || body.isBlank()) {
             throw new BilibiliApiException(-1, status,

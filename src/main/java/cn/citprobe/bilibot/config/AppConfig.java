@@ -7,7 +7,7 @@ import java.util.List;
  * 应用配置。所有字段均来自 application.properties 或环境变量。
  */
 public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
-                        Recommendation recommendation, App app) {
+                        Recommendation recommendation, Risk risk, App app) {
 
     public record Bilibili(
             String cookie,
@@ -76,6 +76,19 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             int minScore,
             List<Long> favoriteFolderIds,
             Path outputFile
+    ) {
+    }
+
+    public record Risk(
+            boolean enabled,
+            long minGapMs,
+            int readHourly,
+            int readDaily,
+            int writeHourly,
+            int writeDaily,
+            int writeGapSeconds,
+            int dedupHours,
+            Path stateFile
     ) {
     }
 

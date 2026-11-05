@@ -143,6 +143,20 @@ app.state-file=data/state.json
 app.session-file=data/session.json
 
 
+# ---------- 请求保护 ----------
+
+# 全局请求保护：最小间隔、读写额度、写冷却、重复写拦截、412/429 暂停。
+risk.enabled=true
+risk.min-gap-ms=1500
+risk.read-hourly=600
+risk.read-daily=3000
+risk.write-hourly=12
+risk.write-daily=30
+risk.write-gap-seconds=120
+risk.dedup-hours=24
+risk.state-file=data/traffic.json
+
+
 # ---------- 收藏夹推荐 ----------
 
 # 是否扫描主人的公开收藏夹，查找相关视频并写入推荐文件。

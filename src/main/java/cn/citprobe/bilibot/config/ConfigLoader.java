@@ -190,6 +190,18 @@ public final class ConfigLoader {
                         favoriteFolderIds,
                         recommendationFile
                 ),
+                new AppConfig.Risk(
+                        bool(props, "risk.enabled", true),
+                        intInRange(props, "risk.min-gap-ms", 1500, 200, 10000),
+                        intInRange(props, "risk.read-hourly", 600, 10, 100000),
+                        intInRange(props, "risk.read-daily", 3000, 10, 1000000),
+                        intInRange(props, "risk.write-hourly", 12, 1, 10000),
+                        intInRange(props, "risk.write-daily", 30, 1, 100000),
+                        intInRange(props, "risk.write-gap-seconds", 120, 0, 3600),
+                        intInRange(props, "risk.dedup-hours", 24, 0, 720),
+                        Paths.get(string(props, "risk.state-file", "data/traffic.json"))
+                                .toAbsolutePath().normalize()
+                ),
                 new AppConfig.App(stateFile, sessionFile)
         );
 

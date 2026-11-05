@@ -5,6 +5,7 @@ import cn.citprobe.bilibot.auth.BilibiliAuthService;
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.bilibili.BilibiliClient;
 import cn.citprobe.bilibot.bilibili.BotIdentity;
+import cn.citprobe.bilibot.bilibili.TrafficGuard;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.config.ConfigException;
 import cn.citprobe.bilibot.config.ConfigLoader;
@@ -64,7 +65,9 @@ public final class BotApplication {
         BilibiliAuthService authService = new BilibiliAuthService(
                 config.bilibili(), config.app().sessionFile());
         String runtimeCookie = authService.authenticate();
-        BilibiliClient bilibili = new BilibiliClient(config.bilibili().withCookie(runtimeCookie));
+        TrafficGuard trafficGuard = new TrafficGuard(config.risk());
+        BilibiliClient bilibili = new BilibiliClient(
+                config.bilibili().withCookie(runtimeCookie), trafficGuard);
         BotIdentity bot = bilibili.whoAmI();
         if (bot.mid() == config.bilibili().ownerUid()) {
             throw new ConfigException("bilibili.owner-uid 不能等于机器人账号自己的 UID");
