@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.10.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.11.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -554,6 +554,8 @@ sudo systemctl status bilibili-bot
 | `bilibili.private-message-enabled` | `false` | 是否开启私聊自动回复，任何人都可以私聊机器人                     |
 | `bilibili.private-message-poll-seconds` | `60` | 私聊轮询间隔，最小 10 秒                       |
 | `bilibili.private-message-history-size` | `8` | 每次读取多少条私聊作为上下文                         |
+| `bilibili.private-message-max-attempts` | `3` | 发送失败最多重试次数                            |
+| `bilibili.private-message-max-backoff-seconds` | `900` | 空闲/失败退避上限（秒）                    |
 | `bilibili.process-existing`        | `false` | 首次启动是否处理已存在的 @/回复                          |
 | `bilibili.first-run-grace-seconds` | `120`   | 首次启动时，最近多少秒内的 @/回复 仍视为新消息                  |
 | `bilibili.max-mention-age-minutes` | `120`   | 超过此时间的 @/回复 不再回复                           |
@@ -914,7 +916,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.10.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.11.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

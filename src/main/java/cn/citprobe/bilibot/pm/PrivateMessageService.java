@@ -42,7 +42,11 @@ public final class PrivateMessageService {
     private final PersonaSource persona;
     private final ReplyFormatter formatter;
     private final long startEpoch = Instant.now().getEpochSecond();
+    private final java.util.Map<String, Integer> attempts = new java.util.HashMap<>();
     private boolean firstPoll = true;
+    private boolean foundNew;
+    private boolean lastError;
+    private long nextDelaySeconds;
 
     public PrivateMessageService(AppConfig config, BilibiliClient bilibili,
                                  DeepSeekClient deepSeek, BotIdentity bot, DailyStats stats) {
@@ -66,15 +70,23 @@ public final class PrivateMessageService {
                 config.reply().samePersonCooldownDays()
         );
         this.formatter = new ReplyFormatter(pmReply);
+        this.nextDelaySeconds = config.bilibili().privateMessagePollSeconds();
+    }
+
+    public long nextDelaySeconds() {
+        return nextDelaySeconds;
     }
 
     public void runOnce() {
         if (!config.bilibili().privateMessageEnabled()) {
             return;
         }
+        foundNew = false;
+        lastError = false;
         List<PrivateSession> sessions = bilibili.fetchPrivateSessions();
         if (sessions.isEmpty()) {
             firstPoll = false;
+            updateBackoff();
             return;
         }
         if (firstPoll) {
@@ -93,6 +105,7 @@ public final class PrivateMessageService {
             firstPoll = false;
             log.info("[私聊] 首次启动已跳过历史私聊，之后只回复新消息（初始化会话 {} 个）",
                     sessions.size());
+            updateBackoff();
             return;
         }
         sessions = sessions.stream()
@@ -112,9 +125,24 @@ public final class PrivateMessageService {
         }
         store.save();
         firstPoll = false;
+        updateBackoff();
         if (replied > 0) {
             log.info("[私聊] 本轮回复 {} 条私信", replied);
         }
+    }
+
+    private void updateBackoff() {
+        int base = config.bilibili().privateMessagePollSeconds();
+        int max = config.bilibili().privateMessageMaxBackoffSeconds();
+        if (foundNew) {
+            nextDelaySeconds = base;
+        } else {
+            nextDelaySeconds = Math.min(max, Math.max(base, nextDelaySeconds * 2));
+        }
+        if (lastError) {
+            nextDelaySeconds = Math.min(max, Math.max(base, nextDelaySeconds * 2));
+        }
+        log.debug("[私聊] 下次轮询间隔: {}s", nextDelaySeconds);
     }
 
     private int processSession(PrivateSession session) {
@@ -153,29 +181,46 @@ public final class PrivateMessageService {
                 }
                 continue;
             }
-            store.markSeen(key);
+            foundNew = true;
             log.info("[私聊] 收到 用户={} UID={} 内容={}",
                     displayName(message.senderUid()), message.senderUid(), preview(text));
             String reply = generateReply(message, messages, text);
+            boolean sent = config.bilibili().dryRun();
             if (config.bilibili().dryRun()) {
                 log.info("[私聊] DRY-RUN 不发送 | 用户={} | 拟回复：{}",
                         message.senderUid(), reply);
             } else {
                 try {
                     bilibili.sendPrivateMessage(bot.mid(), session.talkerId(), reply);
+                    sent = true;
                     log.info("[私聊] 已回复 用户={} UID={} 内容={}",
                             displayName(session.talkerId()), session.talkerId(), preview(reply));
                 } catch (RuntimeException e) {
+                    lastError = true;
                     if (stats != null) {
                         stats.increment("errors");
                     }
-                    log.warn("[私聊] 发送失败 用户={}: {}", session.talkerId(), e.getMessage());
+                    int count = attempts.merge(key, 1, Integer::sum);
+                    if (count >= config.bilibili().privateMessageMaxAttempts()) {
+                        store.markSeen(key);
+                        attempts.remove(key);
+                        log.warn("[私聊] 发送失败 {} 次，放弃该消息: 用户={}：{}",
+                                count, session.talkerId(), e.getMessage());
+                    } else {
+                        log.warn("[私聊] 发送失败，下轮重试（{}/{}）用户={}：{}",
+                                count, config.bilibili().privateMessageMaxAttempts(),
+                                session.talkerId(), e.getMessage());
+                    }
                 }
             }
-            if (stats != null) {
-                stats.increment("pmReplied");
+            if (sent) {
+                store.markSeen(key);
+                attempts.remove(key);
+                if (stats != null) {
+                    stats.increment("pmReplied");
+                }
+                replied++;
             }
-            replied++;
         }
         return replied;
     }

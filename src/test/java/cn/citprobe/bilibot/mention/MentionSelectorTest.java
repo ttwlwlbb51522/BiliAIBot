@@ -38,6 +38,8 @@ class MentionSelectorTest {
                 false,
                 60,
                 8,
+                3,
+                900,
                 requireMention,
                 false,
                 120,

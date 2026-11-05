@@ -97,12 +97,7 @@ public final class BotRunner {
             );
         }
         if (privateMessageService != null && config.bilibili().privateMessageEnabled()) {
-            privateMessageScheduler.scheduleWithFixedDelay(
-                    this::privateMessageSafely,
-                    30,
-                    config.bilibili().privateMessagePollSeconds(),
-                    TimeUnit.SECONDS
-            );
+            schedulePrivateMessage(30);
         }
         if (notifyService != null) {
             notifyScheduler.scheduleWithFixedDelay(
@@ -151,12 +146,23 @@ public final class BotRunner {
         }
     }
 
+    private void schedulePrivateMessage(long delaySeconds) {
+        if (!running.get() || privateMessageService == null
+                || !config.bilibili().privateMessageEnabled()) {
+            return;
+        }
+        privateMessageScheduler.schedule(this::privateMessageSafely,
+                Math.max(1, delaySeconds), TimeUnit.SECONDS);
+    }
+
     private void privateMessageSafely() {
         try {
             privateMessageService.runOnce();
         } catch (Exception e) {
             log.warn("[私聊] 本轮拉取失败: {}", e.getMessage());
             log.debug("私聊轮询异常详情", e);
+        } finally {
+            schedulePrivateMessage(privateMessageService.nextDelaySeconds());
         }
     }
 

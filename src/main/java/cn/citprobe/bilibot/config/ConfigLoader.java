@@ -153,6 +153,8 @@ public final class ConfigLoader {
                         bool(props, "bilibili.private-message-enabled", false),
                         intInRange(props, "bilibili.private-message-poll-seconds", 60, 10, 3600),
                         intInRange(props, "bilibili.private-message-history-size", 8, 1, 30),
+                        intInRange(props, "bilibili.private-message-max-attempts", 3, 1, 10),
+                        intInRange(props, "bilibili.private-message-max-backoff-seconds", 900, 60, 3600),
                         bool(props, "bilibili.require-bot-mention", true),
                         bool(props, "bilibili.process-existing", false),
                         firstRunGrace,
