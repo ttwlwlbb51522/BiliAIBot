@@ -50,6 +50,7 @@ public final class BotService {
     private final DailyStats stats;
     private final Map<Long, Integer> attempts = new HashMap<>();
     private final Set<Long> loggedEventIds = new LinkedHashSet<>();
+    private final Set<Long> filterLoggedIds = new LinkedHashSet<>();
     private final long firstRunCutoff;
 
     public BotService(AppConfig config,
@@ -107,7 +108,8 @@ public final class BotService {
             Optional<MentionEvent> mapped = MentionEventFactory.from(raw);
             logReceived(raw, mapped.orElse(null), "@通知");
             if (mapped.isEmpty()) {
-                log.warn("[过滤] 无法解析 @ 通知: event={}，可能缺少 source_id/subject_id/正文",
+                logFilterWarnOnce(raw == null ? 0 : raw.id(),
+                        "[过滤] 无法解析 @ 通知: event={}，可能缺少 source_id/subject_id/正文",
                         raw == null ? 0 : raw.id());
                 continue;
             }
@@ -120,15 +122,17 @@ public final class BotService {
             }
             if (!MentionSelector.isEligible(event, bot, config.bilibili())) {
                 if (event.commentType() <= 0) {
-                    log.warn("[过滤] 无法识别评论区类型，忽略: event={}, uri={}",
+                    logFilterWarnOnce(event.eventId(),
+                            "[过滤] 无法识别评论区类型，忽略: event={}, uri={}",
                             event.eventId(), event.uri());
                 } else {
-                    log.info("[过滤] 未满足触发条件，忽略: event={}, 内容={}",
+                    logFilterOnce(event.eventId(),
+                            "[过滤] 未满足触发条件，忽略: event={}, 内容={}",
                             event.eventId(), preview(event.content()));
                 }
                 continue;
             }
-            log.info("[过滤] 命中{} @: event={}, 评论={}, 类型={}",
+            logFilterOnce(event.eventId(), "[过滤] 命中{} @: event={}, 评论={}, 类型={}",
                     owner ? "主人" : "网友", event.eventId(), event.sourceRpid(), event.commentType());
             result.add(event);
         }
@@ -141,7 +145,8 @@ public final class BotService {
             Optional<MentionEvent> mapped = MentionEventFactory.from(raw);
             logReceived(raw, mapped.orElse(null), "回复通知");
             if (mapped.isEmpty()) {
-                log.warn("[过滤] 无法解析回复通知: event={}，可能缺少 source_id/subject_id/正文",
+                logFilterWarnOnce(raw == null ? 0 : raw.id(),
+                        "[过滤] 无法解析回复通知: event={}，可能缺少 source_id/subject_id/正文",
                         raw == null ? 0 : raw.id());
                 continue;
             }
@@ -153,16 +158,48 @@ public final class BotService {
                 continue;
             }
             if (!MentionSelector.isEligibleReply(event, bot, config.bilibili())) {
-                log.info("[过滤] 回复通知未满足续聊条件，忽略: event={}, 内容={}",
+                logFilterOnce(event.eventId(),
+                        "[过滤] 回复通知未满足续聊条件，忽略: event={}, 内容={}",
                         event.eventId(), preview(event.content()));
                 continue;
             }
-            log.info("[过滤] 命中{}回复机器人评论: event={}, 评论={}, 类型={}, 内容={}",
+            logFilterOnce(event.eventId(),
+                    "[过滤] 命中{}回复机器人评论: event={}, 评论={}, 类型={}, 内容={}",
                     owner ? "主人" : "网友", event.eventId(), event.sourceRpid(),
                     event.commentType(), preview(event.content()));
             result.add(event);
         }
         return result;
+    }
+
+    private void logFilterOnce(long eventId, String message, Object... args) {
+        if (!markFilterLogged(eventId)) {
+            return;
+        }
+        log.info(message, args);
+    }
+
+    private void logFilterWarnOnce(long eventId, String message, Object... args) {
+        if (!markFilterLogged(eventId)) {
+            return;
+        }
+        log.warn(message, args);
+    }
+
+    private boolean markFilterLogged(long eventId) {
+        if (eventId <= 0) {
+            return true;
+        }
+        synchronized (filterLoggedIds) {
+            if (!filterLoggedIds.add(eventId)) {
+                return false;
+            }
+            while (filterLoggedIds.size() > MAX_LOGGED_EVENTS) {
+                Long oldest = filterLoggedIds.iterator().next();
+                filterLoggedIds.remove(oldest);
+            }
+            return true;
+        }
     }
 
     private void logReceived(BilibiliDtos.MsgFeedItem raw, MentionEvent event, String label) {
@@ -251,7 +288,7 @@ public final class BotService {
         boolean owner = event.authorUid() == config.bilibili().ownerUid();
         if (!owner && drafts != null && drafts.isCooling(event.authorUid())) {
             state.markHandled(event);
-            log.info("[过滤] 网友 {} 仍在同人限频期内，跳过: event={}",
+            logFilterOnce(event.eventId(), "[过滤] 网友 {} 仍在同人限频期内，跳过: event={}",
                     event.authorUid(), event.eventId());
             return;
         }
