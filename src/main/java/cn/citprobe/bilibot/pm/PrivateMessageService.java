@@ -5,6 +5,7 @@ import cn.citprobe.bilibot.bilibili.BotIdentity;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.deepseek.ChatMessage;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
+import cn.citprobe.bilibot.notify.DailyStats;
 import cn.citprobe.bilibot.pm.PrivateMessageModels.PrivateMessage;
 import cn.citprobe.bilibot.pm.PrivateMessageModels.PrivateSession;
 import cn.citprobe.bilibot.service.PersonaSource;
@@ -36,6 +37,7 @@ public final class PrivateMessageService {
     private final BilibiliClient bilibili;
     private final DeepSeekClient deepSeek;
     private final BotIdentity bot;
+    private final DailyStats stats;
     private final PrivateMessageStore store;
     private final PersonaSource persona;
     private final ReplyFormatter formatter;
@@ -43,11 +45,12 @@ public final class PrivateMessageService {
     private boolean firstPoll = true;
 
     public PrivateMessageService(AppConfig config, BilibiliClient bilibili,
-                                 DeepSeekClient deepSeek, BotIdentity bot) {
+                                 DeepSeekClient deepSeek, BotIdentity bot, DailyStats stats) {
         this.config = config;
         this.bilibili = bilibili;
         this.deepSeek = deepSeek;
         this.bot = bot;
+        this.stats = stats;
         Path stateFile = config.app().stateFile();
         Path pmState = stateFile.resolveSibling("private-messages.json");
         this.store = new PrivateMessageStore(pmState);
@@ -163,8 +166,14 @@ public final class PrivateMessageService {
                     log.info("[私聊] 已回复 用户={} UID={} 内容={}",
                             displayName(session.talkerId()), session.talkerId(), preview(reply));
                 } catch (RuntimeException e) {
+                    if (stats != null) {
+                        stats.increment("errors");
+                    }
                     log.warn("[私聊] 发送失败 用户={}: {}", session.talkerId(), e.getMessage());
                 }
+            }
+            if (stats != null) {
+                stats.increment("pmReplied");
             }
             replied++;
         }

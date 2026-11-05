@@ -12,6 +12,7 @@ import cn.citprobe.bilibot.deepseek.DeepSeekClient;
 import cn.citprobe.bilibot.deepseek.DeepSeekException;
 import cn.citprobe.bilibot.draft.DraftService;
 import cn.citprobe.bilibot.mention.MentionEvent;
+import cn.citprobe.bilibot.notify.DailyStats;
 import cn.citprobe.bilibot.mention.MentionEventFactory;
 import cn.citprobe.bilibot.mention.MentionSelector;
 import cn.citprobe.bilibot.state.StateStore;
@@ -46,6 +47,7 @@ public final class BotService {
     private final PromptBuilder promptBuilder;
     private final ReplyFormatter replyFormatter;
     private final DraftService drafts;
+    private final DailyStats stats;
     private final Map<Long, Integer> attempts = new HashMap<>();
     private final Set<Long> loggedEventIds = new LinkedHashSet<>();
     private final long firstRunCutoff;
@@ -56,7 +58,8 @@ public final class BotService {
                       StateStore state,
                       BotIdentity bot,
                       PromptBuilder promptBuilder,
-                      DraftService drafts) {
+                      DraftService drafts,
+                      DailyStats stats) {
         this.config = config;
         this.bilibili = bilibili;
         this.deepSeek = deepSeek;
@@ -64,6 +67,7 @@ public final class BotService {
         this.bot = bot;
         this.promptBuilder = promptBuilder;
         this.drafts = drafts;
+        this.stats = stats;
         this.replyFormatter = new ReplyFormatter(config.reply());
         this.firstRunCutoff = Instant.now().getEpochSecond() - config.bilibili().firstRunGraceSeconds();
     }
@@ -241,6 +245,9 @@ public final class BotService {
                     event.eventId(), event.sourceRpid(), ageSeconds(event));
             return;
         }
+        if (stats != null) {
+            stats.increment("commentsReceived");
+        }
         boolean owner = event.authorUid() == config.bilibili().ownerUid();
         if (!owner && drafts != null && drafts.isCooling(event.authorUid())) {
             state.markHandled(event);
@@ -287,6 +294,9 @@ public final class BotService {
                 if (!owner && drafts != null) {
                     drafts.markReplied(event.authorUid());
                 }
+                if (stats != null) {
+                    stats.increment("commentsReplied");
+                }
                 log.info("[发送] 成功: event={}, 新评论 rpid={}, 总耗时={}ms, 内容={}",
                         event.eventId(), rpid, System.currentTimeMillis() - start,
                         preview(reply, 500));
@@ -295,10 +305,19 @@ public final class BotService {
             state.markHandled(event);
             attempts.remove(event.eventId());
         } catch (BilibiliApiException e) {
+            if (stats != null) {
+                stats.increment("errors");
+            }
             handleBilibiliFailure(event, e);
         } catch (DeepSeekException e) {
+            if (stats != null) {
+                stats.increment("errors");
+            }
             handleDeepSeekFailure(event, e);
         } catch (RuntimeException e) {
+            if (stats != null) {
+                stats.increment("errors");
+            }
             handleUnexpectedFailure(event, e);
         }
     }

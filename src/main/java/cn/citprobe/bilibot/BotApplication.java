@@ -12,6 +12,8 @@ import cn.citprobe.bilibot.config.ConfigLoader;
 import cn.citprobe.bilibot.console.BotConsole;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
 import cn.citprobe.bilibot.draft.DraftService;
+import cn.citprobe.bilibot.notify.DailyStats;
+import cn.citprobe.bilibot.notify.NotifyService;
 import cn.citprobe.bilibot.pm.PrivateMessageService;
 import cn.citprobe.bilibot.recommend.RecommendationService;
 import cn.citprobe.bilibot.service.BotService;
@@ -76,13 +78,19 @@ public final class BotApplication {
 
         DeepSeekClient deepSeek = new DeepSeekClient(config.deepseek());
         StateStore state = new StateStore(config.app().stateFile());
+        DailyStats dailyStats = new DailyStats(
+                config.app().stateFile().resolveSibling("daily-stats.json"));
+        NotifyService notifyService = new NotifyService(config.notification(), dailyStats);
         PromptBuilder promptBuilder = new PromptBuilder(config.reply(), config.bilibili(), bot);
-        DraftService draftService = new DraftService(config, bilibili);
-        BotService service = new BotService(config, bilibili, deepSeek, state, bot, promptBuilder, draftService);
-        RecommendationService recommendationService = new RecommendationService(config, bilibili, deepSeek);
+        DraftService draftService = new DraftService(config, bilibili, dailyStats, notifyService);
+        BotService service = new BotService(config, bilibili, deepSeek, state, bot,
+                promptBuilder, draftService, dailyStats);
+        RecommendationService recommendationService = new RecommendationService(
+                config, bilibili, deepSeek, dailyStats);
         PrivateMessageService privateMessageService = new PrivateMessageService(
-                config, bilibili, deepSeek, bot);
-        BotRunner runner = new BotRunner(config, service, recommendationService, privateMessageService);
+                config, bilibili, deepSeek, bot, dailyStats);
+        BotRunner runner = new BotRunner(config, service, recommendationService,
+                privateMessageService, notifyService);
 
         Runtime.getRuntime().addShutdownHook(new Thread(runner::close, "bili-deepseek-shutdown"));
 

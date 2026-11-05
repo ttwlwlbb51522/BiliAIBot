@@ -7,7 +7,7 @@ import java.util.List;
  * 应用配置。所有字段均来自 application.properties 或环境变量。
  */
 public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
-                        Recommendation recommendation, Risk risk, App app) {
+                        Recommendation recommendation, Risk risk, Notify notification, App app) {
 
     public record Bilibili(
             String cookie,
@@ -91,6 +91,16 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             int writeGapSeconds,
             int dedupHours,
             Path stateFile
+    ) {
+    }
+
+    public record Notify(
+            String type,
+            Path file,
+            String webhookUrl,
+            String command,
+            boolean dailySummaryEnabled,
+            int dailySummaryHour
     ) {
     }
 

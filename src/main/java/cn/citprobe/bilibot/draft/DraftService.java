@@ -4,6 +4,8 @@ import cn.citprobe.bilibot.bilibili.BilibiliClient;
 import cn.citprobe.bilibot.bilibili.CommentTarget;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.mention.MentionEvent;
+import cn.citprobe.bilibot.notify.DailyStats;
+import cn.citprobe.bilibot.notify.NotifyService;
 import cn.citprobe.bilibot.util.Json;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -29,13 +31,18 @@ public final class DraftService {
 
     private final AppConfig config;
     private final BilibiliClient bilibili;
+    private final DailyStats stats;
+    private final NotifyService notify;
     private final DraftStore store;
     private final Path cooldownFile;
     private final Map<Long, Long> lastReplyAt = new LinkedHashMap<>();
 
-    public DraftService(AppConfig config, BilibiliClient bilibili) {
+    public DraftService(AppConfig config, BilibiliClient bilibili,
+                        DailyStats stats, NotifyService notify) {
         this.config = config;
         this.bilibili = bilibili;
+        this.stats = stats;
+        this.notify = notify;
         Path state = config.app().stateFile();
         this.store = new DraftStore(state.resolveSibling("drafts.json"));
         this.cooldownFile = state.resolveSibling("person-cooldowns.json");
@@ -64,6 +71,12 @@ public final class DraftService {
                 Instant.now().toString()
         );
         store.add(draft);
+        if (stats != null) {
+            stats.increment("drafts");
+        }
+        if (notify != null) {
+            notify.sendDraft(draft);
+        }
         log.info("[草稿] 已保存待审回复: id={}, 作者={}({}), 评论={}, 内容={}",
                 id, event.authorName(), event.authorUid(), event.sourceRpid(), preview(event.content()));
         return draft;
@@ -87,6 +100,9 @@ public final class DraftService {
             long rpid = bilibili.addReply(draft.target(), draft.reply());
             store.remove(id);
             markReplied(draft.authorUid());
+            if (stats != null) {
+                stats.increment("commentsReplied");
+            }
             log.info("[草稿] 已批准并发送: id={}, 新评论 rpid={}, 内容={}",
                     id, rpid, preview(draft.reply()));
             return true;

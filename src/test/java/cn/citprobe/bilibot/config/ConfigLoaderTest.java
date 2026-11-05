@@ -39,6 +39,8 @@ class ConfigLoaderTest {
         assertTrue(config.bilibili().replyFeedEnabled());
         assertFalse(config.bilibili().allowOtherUsers());
         assertFalse(config.bilibili().privateMessageEnabled());
+        assertEquals("none", config.notification().type());
+        assertTrue(config.notification().dailySummaryEnabled());
         assertEquals(60, config.bilibili().privateMessagePollSeconds());
         assertEquals(8, config.bilibili().privateMessageHistorySize());
         assertEquals("https://api.bilibili.com/x/msgfeed/reply", config.bilibili().replyFeedUrl());

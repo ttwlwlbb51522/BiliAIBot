@@ -2,6 +2,7 @@ package cn.citprobe.bilibot;
 
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.config.AppConfig;
+import cn.citprobe.bilibot.notify.NotifyService;
 import cn.citprobe.bilibot.pm.PrivateMessageService;
 import cn.citprobe.bilibot.recommend.RecommendationService;
 import cn.citprobe.bilibot.service.BotService;
@@ -25,27 +26,35 @@ public final class BotRunner {
     private final BotService service;
     private final RecommendationService recommendationService;
     private final PrivateMessageService privateMessageService;
+    private final NotifyService notifyService;
     private final ScheduledExecutorService scheduler;
     private final ScheduledExecutorService recommendationScheduler;
     private final ScheduledExecutorService privateMessageScheduler;
+    private final ScheduledExecutorService notifyScheduler;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile long lastAuthLogAt;
     private volatile long lastRiskLogAt;
 
     public BotRunner(AppConfig config, BotService service) {
-        this(config, service, null, null);
+        this(config, service, null, null, null);
     }
 
     public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService) {
-        this(config, service, recommendationService, null);
+        this(config, service, recommendationService, null, null);
     }
 
     public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService,
                      PrivateMessageService privateMessageService) {
+        this(config, service, recommendationService, privateMessageService, null);
+    }
+
+    public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService,
+                     PrivateMessageService privateMessageService, NotifyService notifyService) {
         this.config = config;
         this.service = service;
         this.recommendationService = recommendationService;
         this.privateMessageService = privateMessageService;
+        this.notifyService = notifyService;
         AtomicInteger counter = new AtomicInteger();
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-poll-" + counter.incrementAndGet());
@@ -59,6 +68,11 @@ public final class BotRunner {
         });
         this.privateMessageScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-private-message");
+            thread.setDaemon(false);
+            return thread;
+        });
+        this.notifyScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "bili-deepseek-notify");
             thread.setDaemon(false);
             return thread;
         });
@@ -87,6 +101,14 @@ public final class BotRunner {
                     this::privateMessageSafely,
                     30,
                     config.bilibili().privateMessagePollSeconds(),
+                    TimeUnit.SECONDS
+            );
+        }
+        if (notifyService != null) {
+            notifyScheduler.scheduleWithFixedDelay(
+                    this::summarySafely,
+                    60,
+                    600,
                     TimeUnit.SECONDS
             );
         }
@@ -138,6 +160,14 @@ public final class BotRunner {
         }
     }
 
+    private void summarySafely() {
+        try {
+            notifyService.maybeDailySummary();
+        } catch (Exception e) {
+            log.warn("[通知] 每日摘要检查失败: {}", e.getMessage());
+        }
+    }
+
     private static boolean shouldLog(long lastAt) {
         return System.currentTimeMillis() - lastAt >= 300_000L;
     }
@@ -149,12 +179,14 @@ public final class BotRunner {
         scheduler.shutdownNow();
         recommendationScheduler.shutdownNow();
         privateMessageScheduler.shutdownNow();
+        notifyScheduler.shutdownNow();
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                 log.warn("轮询线程未在 5 秒内停止");
             }
             recommendationScheduler.awaitTermination(5, TimeUnit.SECONDS);
             privateMessageScheduler.awaitTermination(5, TimeUnit.SECONDS);
+            notifyScheduler.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

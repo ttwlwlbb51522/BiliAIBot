@@ -149,6 +149,19 @@ app.state-file=data/state.json
 app.session-file=data/session.json
 
 
+# ---------- 通知与日报 ----------
+
+# 通知渠道：none / stdout / file / webhook / command。
+notify.type=none
+notify.file=data/notifications.log
+notify.webhook-url=
+notify.command=
+
+# 每天定时发送一份运行摘要。
+notify.daily-summary-enabled=true
+notify.daily-summary-hour=23
+
+
 # ---------- 请求保护 ----------
 
 # 全局请求保护：最小间隔、读写额度、写冷却、重复写拦截、412/429 暂停。

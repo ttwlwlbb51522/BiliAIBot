@@ -204,6 +204,15 @@ public final class ConfigLoader {
                         Paths.get(string(props, "risk.state-file", "data/traffic.json"))
                                 .toAbsolutePath().normalize()
                 ),
+                new AppConfig.Notify(
+                        notifyType(props),
+                        Paths.get(string(props, "notify.file", "data/notifications.log"))
+                                .toAbsolutePath().normalize(),
+                        string(props, "notify.webhook-url", ""),
+                        string(props, "notify.command", ""),
+                        bool(props, "notify.daily-summary-enabled", true),
+                        intInRange(props, "notify.daily-summary-hour", 23, 0, 23)
+                ),
                 new AppConfig.App(stateFile, sessionFile)
         );
 
@@ -363,6 +372,14 @@ public final class ConfigLoader {
             }
         }
         return List.copyOf(aliases);
+    }
+
+    private static String notifyType(Properties props) {
+        String value = string(props, "notify.type", "none").toLowerCase(Locale.ROOT);
+        if (!List.of("none", "stdout", "file", "webhook", "command").contains(value)) {
+            throw new ConfigException("notify.type 只能是 none、stdout、file、webhook 或 command");
+        }
+        return value;
     }
 
     private static String otherUsersMode(Properties props) {

@@ -4,6 +4,7 @@ import cn.citprobe.bilibot.bilibili.BilibiliClient;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.deepseek.ChatMessage;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
+import cn.citprobe.bilibot.notify.DailyStats;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteFolder;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteVideo;
 import cn.citprobe.bilibot.recommend.RecommendationModels.Recommendation;
@@ -38,12 +39,15 @@ public final class RecommendationService {
     private final AppConfig config;
     private final BilibiliClient bilibili;
     private final DeepSeekClient deepSeek;
+    private final DailyStats stats;
     private final RecommendationStore store;
 
-    public RecommendationService(AppConfig config, BilibiliClient bilibili, DeepSeekClient deepSeek) {
+    public RecommendationService(AppConfig config, BilibiliClient bilibili,
+                                 DeepSeekClient deepSeek, DailyStats stats) {
         this.config = config;
         this.bilibili = bilibili;
         this.deepSeek = deepSeek;
+        this.stats = stats;
         this.store = new RecommendationStore(config.recommendation().outputFile());
     }
 
@@ -134,6 +138,9 @@ public final class RecommendationService {
 
         Instant now = Instant.now();
         store.save(now.toString(), recommendations);
+        if (stats != null && !recommendations.isEmpty()) {
+            stats.add("recommendations", recommendations.size());
+        }
         log.info("[推荐] 扫描完成: 收藏夹={} 样本={} 候选={} 推荐={} 文件={}",
                 folders.size(), seeds.size(), candidates.size(), recommendations.size(),
                 recommendation.outputFile());
