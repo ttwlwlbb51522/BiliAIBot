@@ -357,9 +357,13 @@ public final class BotService {
 
     private void handleDeepSeekFailure(MentionEvent event, DeepSeekException e) {
         int status = e.httpStatus();
-        if (status == 401 || status == 402 || status == 403) {
+        if (status == 402) {
+            sendFallback(event, "DeepSeek 余额不足");
+            return;
+        }
+        if (status == 401 || status == 403) {
             attempts.remove(event.eventId());
-            log.error("DeepSeek 鉴权/余额异常，暂不标记该评论，修复配置后会自动重试。event={}, {}",
+            log.error("DeepSeek 鉴权异常，暂不标记该评论，修复配置后会自动重试。event={}, {}",
                     event.eventId(), e.getMessage());
             return;
         }
@@ -371,6 +375,38 @@ public final class BotService {
             return;
         }
         recordRetryableFailure(event, "DeepSeek", e);
+    }
+
+    private void sendFallback(MentionEvent event, String reason) {
+        CommentTarget target = event.toTarget();
+        String reply = replyFormatter.format("", event.authorName());
+        boolean owner = event.authorUid() == config.bilibili().ownerUid();
+        log.warn("[兜底] {}，使用兜底回复: event={}, comment={}, 内容={}",
+                reason, event.eventId(), event.sourceRpid(), preview(reply));
+        try {
+            if (!owner && drafts != null && drafts.draftEnabled()) {
+                drafts.save(event, reply);
+                drafts.markReplied(event.authorUid());
+                log.info("[兜底] 已进入草稿队列: event={}", event.eventId());
+            } else if (config.bilibili().dryRun()) {
+                log.info("[兜底] DRY-RUN 不发送: event={}, 拟回复={}", event.eventId(), reply);
+            } else {
+                long rpid = bilibili.addReply(target, reply);
+                if (!owner && drafts != null) {
+                    drafts.markReplied(event.authorUid());
+                }
+                if (stats != null) {
+                    stats.increment("commentsReplied");
+                }
+                log.info("[兜底] 已发送: event={}, 新评论 rpid={}", event.eventId(), rpid);
+            }
+            state.markHandled(event);
+            attempts.remove(event.eventId());
+        } catch (BilibiliApiException e) {
+            handleBilibiliFailure(event, e);
+        } catch (RuntimeException e) {
+            recordRetryableFailure(event, "兜底回复", e);
+        }
     }
 
     private void handleUnexpectedFailure(MentionEvent event, RuntimeException e) {
