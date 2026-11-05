@@ -52,6 +52,8 @@ class ConfigLoaderTest {
         assertEquals(5, config.recommendation().maxFolders());
         assertTrue(config.recommendation().favoriteFolderIds().isEmpty());
         assertFalse(config.recommendation().videoInsightEnabled());
+        assertFalse(config.video().framesEnabled());
+        assertEquals(6, config.video().frameCount());
         assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());
         assertTrue(config.app().stateFile().isAbsolute());
         assertTrue(config.app().sessionFile().isAbsolute());

@@ -400,6 +400,32 @@ public final class BilibiliClient {
         return execute(baseRequest(url, referer).GET().build());
     }
 
+    public String cookieHeader() {
+        return config.cookie();
+    }
+
+    public String userAgent() {
+        return config.userAgent();
+    }
+
+    public String fetchPlayUrl(String bvid, long cid) {
+        JsonNode root = getJson("https://api.bilibili.com/x/player/playurl?bvid="
+                        + bvid + "&cid=" + cid + "&qn=16&fnval=1&fnver=0&fourk=0",
+                "https://www.bilibili.com/video/" + bvid);
+        if (root.path("code").asInt(-1) != 0) {
+            throw new BilibiliApiException(root.path("code").asInt(-1), 200,
+                    "读取视频播放地址失败: " + root.path("message").asText(""));
+        }
+        JsonNode durl = root.path("data").path("durl");
+        if (durl.isArray() && !durl.isEmpty()) {
+            String url = durl.get(0).path("url").asText("");
+            if (!url.isBlank()) {
+                return url;
+            }
+        }
+        throw new BilibiliApiException(-1, 200, "视频没有可用的 MP4 直链");
+    }
+
     /**
      * WBI 签名 GET。params 不包含 wts/w_rid，由本方法补齐。
      */

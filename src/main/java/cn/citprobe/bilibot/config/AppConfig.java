@@ -7,7 +7,8 @@ import java.util.List;
  * 应用配置。所有字段均来自 application.properties 或环境变量。
  */
 public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
-                        Recommendation recommendation, Risk risk, Notify notification, App app) {
+                        Recommendation recommendation, Risk risk, Notify notification,
+                        Video video, App app) {
 
     public record Bilibili(
             String cookie,
@@ -105,6 +106,17 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             String command,
             boolean dailySummaryEnabled,
             int dailySummaryHour
+    ) {
+    }
+
+    public record Video(
+            boolean framesEnabled,
+            String ffmpegPath,
+            int frameCount,
+            int maxSeconds,
+            String visionBaseUrl,
+            String visionApiKey,
+            String visionModel
     ) {
     }
 

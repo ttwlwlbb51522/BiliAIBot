@@ -216,6 +216,15 @@ public final class ConfigLoader {
                         bool(props, "notify.daily-summary-enabled", true),
                         intInRange(props, "notify.daily-summary-hour", 23, 0, 23)
                 ),
+                new AppConfig.Video(
+                        bool(props, "video.frames-enabled", false),
+                        string(props, "video.ffmpeg-path", "ffmpeg"),
+                        intInRange(props, "video.frame-count", 6, 1, 12),
+                        intInRange(props, "video.max-seconds", 30, 5, 300),
+                        string(props, "video.vision-base-url", ""),
+                        string(props, "video.vision-api-key", ""),
+                        string(props, "video.vision-model", "")
+                ),
                 new AppConfig.App(stateFile, sessionFile)
         );
 

@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.12.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.13.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -616,6 +616,18 @@ sudo systemctl status bilibili-bot
 | `risk.dedup-hours`          | `24`                | 重复写指纹保留时间                  |
 | `risk.state-file`           | `data/traffic.json` | 请求保护状态文件                   |
 
+### 视频画面分析
+
+| 配置                      | 默认值      | 说明                                      |
+|-------------------------|----------|-----------------------------------------|
+| `video.frames-enabled`  | `false`  | 是否启用 ffmpeg 抽帧 + 视觉模型                   |
+| `video.ffmpeg-path`     | `ffmpeg` | ffmpeg 可执行文件路径                          |
+| `video.frame-count`     | `6`      | 抽取多少帧                                   |
+| `video.max-seconds`     | `30`     | 最多截取视频前多少秒                              |
+| `video.vision-base-url` | 空        | OpenAI 兼容视觉接口地址                         |
+| `video.vision-api-key`  | 空        | 视觉接口 Key                                 |
+| `video.vision-model`    | 空        | 视觉模型名称，例如支持 image_url 的模型               |
+
 ### 通知与日报
 
 | 配置                          | 默认值                    | 说明                              |
@@ -917,7 +929,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.12.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.13.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

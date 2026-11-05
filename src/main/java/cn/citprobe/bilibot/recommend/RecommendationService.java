@@ -52,7 +52,7 @@ public final class RecommendationService {
         this.deepSeek = deepSeek;
         this.stats = stats;
         this.store = new RecommendationStore(config.recommendation().outputFile());
-        this.videoInsight = new VideoInsightService(bilibili);
+        this.videoInsight = new VideoInsightService(bilibili, config.video());
     }
 
     public void runOnce() {

@@ -12,7 +12,8 @@ public record VideoInsight(
         String description,
         String subtitles,
         String hotComments,
-        String hotDanmaku
+        String hotDanmaku,
+        String frames
 ) {
     public String summary() {
         StringBuilder sb = new StringBuilder();
@@ -29,6 +30,9 @@ public record VideoInsight(
         }
         if (!hotDanmaku.isBlank()) {
             sb.append("弹幕：").append(hotDanmaku).append('\n');
+        }
+        if (!frames.isBlank()) {
+            sb.append("画面：").append(frames).append('\n');
         }
         String text = sb.toString().trim();
         return text.length() <= 6000 ? text : text.substring(0, 6000) + "…";

@@ -2,6 +2,7 @@ package cn.citprobe.bilibot.video;
 
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.bilibili.BilibiliClient;
+import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.util.Json;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
@@ -25,9 +26,11 @@ public final class VideoInsightService {
     private static final Pattern DANMAKU = Pattern.compile("<d p=\"[^\"]*\">([^<]*)</d>");
 
     private final BilibiliClient bilibili;
+    private final FrameAnalyzer frames;
 
-    public VideoInsightService(BilibiliClient bilibili) {
+    public VideoInsightService(BilibiliClient bilibili, AppConfig.Video videoConfig) {
         this.bilibili = bilibili;
+        this.frames = new FrameAnalyzer(videoConfig, bilibili);
     }
 
     public VideoInsight analyze(String bvid) {
@@ -49,6 +52,7 @@ public final class VideoInsightService {
         String subtitles = "";
         String hotDanmaku = "";
         String hotComments = "";
+        String frameDescription = "";
         try {
             subtitles = fetchSubtitles(bvid, cid);
         } catch (RuntimeException e) {
@@ -64,8 +68,13 @@ public final class VideoInsightService {
         } catch (RuntimeException e) {
             log.debug("读取热评失败 {}: {}", bvid, e.getMessage());
         }
+        try {
+            frameDescription = frames.analyze(bvid, cid);
+        } catch (RuntimeException e) {
+            log.debug("画面理解失败 {}: {}", bvid, e.getMessage());
+        }
         return new VideoInsight(bvid, aid, cid, title, author, description,
-                subtitles, hotComments, hotDanmaku);
+                subtitles, hotComments, hotDanmaku, frameDescription);
     }
 
     private String fetchSubtitles(String bvid, long cid) {
