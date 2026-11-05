@@ -93,7 +93,7 @@ bilibili.trigger-aliases=
 # ---------- DeepSeek 模型 ----------
 
 deepseek.base-url=https://api.deepseek.com
-deepseek.model=deepseek-chat
+deepseek.model=deepseek-flash
 deepseek.temperature=0.8
 deepseek.max-tokens=800
 deepseek.timeout-seconds=90

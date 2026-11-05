@@ -62,14 +62,14 @@ class ConfigFileManagerTest {
         assertTrue(content.contains("bilibili.dry-run=true"), "空值应补默认值");
         String expectedFallback = ConfigFileManager.templateDefaults().getProperty("reply.fallback-text");
         assertTrue(content.contains("reply.fallback-text=" + expectedFallback));
-        assertTrue(content.contains("deepseek.model=deepseek-chat"), "缺失键应补全");
+        assertTrue(content.contains("deepseek.model=deepseek-flash"), "缺失键应补全");
         assertTrue(content.contains("# ===== 以下配置项由程序自动补全"));
 
         Properties properties = new Properties();
         properties.load(Files.newBufferedReader(file));
         assertEquals("60", properties.getProperty("bilibili.poll-interval-seconds"));
         assertEquals("true", properties.getProperty("bilibili.dry-run"));
-        assertEquals("deepseek-chat", properties.getProperty("deepseek.model"));
+        assertEquals("deepseek-flash", properties.getProperty("deepseek.model"));
     }
 
     @Test

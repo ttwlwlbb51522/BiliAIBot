@@ -53,7 +53,7 @@ class DeepSeekClientTest {
         AppConfig.DeepSeek config = new AppConfig.DeepSeek(
                 "sk-test",
                 "http://127.0.0.1:" + server.getAddress().getPort(),
-                "deepseek-chat",
+                "deepseek-flash",
                 0.7,
                 345,
                 10,
@@ -69,7 +69,7 @@ class DeepSeekClientTest {
         assertEquals("你好，我是 DeepSeek。", answer);
         assertEquals("Bearer sk-test", authorization.get());
         JsonNode sent = Json.DEEPSEEK.readTree(requestBody.get());
-        assertEquals("deepseek-chat", sent.path("model").asText());
+        assertEquals("deepseek-flash", sent.path("model").asText());
         assertEquals(345, sent.path("max_tokens").asInt());
         assertEquals(0.7, sent.path("temperature").asDouble());
         assertTrue(!sent.path("stream").asBoolean());

@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.15.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.15.1**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -283,7 +283,7 @@ java -jar target\bilibili-deepseek-bot.jar D:\path\to\application.properties
 ```
 机器人账号：DeepSeek小助手（UID 123456）
 主人账号 UID：987654321
-模型：deepseek-chat，轮询间隔：45s，状态文件：...\data\state.json
+模型：deepseek-flash，轮询间隔：45s，状态文件：...\data\state.json
 当前为 DRY-RUN 模式：只生成回复并写入日志，不会真的发表评论。
 开始监听 @ 消息。按 Ctrl+C 退出。
 ```
@@ -352,7 +352,7 @@ sudo systemctl stop bilibili-bot
 [处理] 开始: ...
 [处理] 评论串上下文: N 条
 [处理] Prompt 构造完成: 2 条消息, N 字
-[处理] 调用 DeepSeek: model=deepseek-chat
+[处理] 调用 DeepSeek: model=deepseek-flash
 [处理] DeepSeek 返回: N 字, 耗时=...ms
 [处理] 回复整理完成: N 字
 [发送] 正在发表评论: oid=... type=... root=... parent=...
@@ -578,7 +578,7 @@ sudo systemctl status bilibili-bot
 |----------------------------|----------------------------|--------------------------------|
 | `deepseek.api-key`         | 空                          | API Key                        |
 | `deepseek.base-url`        | `https://api.deepseek.com` | 可改为兼容代理地址                      |
-| `deepseek.model`           | `deepseek-chat`            | 也可用 `deepseek-reasoner`（更慢、更贵） |
+| `deepseek.model`           | `deepseek-flash`           | 当前 V4.1 Flash；旧的 `deepseek-chat` 已弃用 |
 | `deepseek.temperature`     | `0.8`                      | 0 ~ 2                          |
 | `deepseek.max-tokens`      | `800`                      | 回复 token 上限                    |
 | `deepseek.timeout-seconds` | `90`                       | 请求超时                           |
@@ -749,7 +749,7 @@ reply.system-prompt-file=persona.txt
 >
 > 编辑后如果下一条回复没有变化，检查日志中的 `已加载人设文件` / `检测到人设文件变化` 路径是否是你修改的文件。
 >
-> 推荐使用 `deepseek.model=deepseek-chat`。指令跟随较弱的模型别名可能产生人设漂移。
+> 推荐使用 `deepseek.model=deepseek-flash`。`deepseek-chat` 已于 2026-07-24 退役。
 
 ---
 
@@ -933,7 +933,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
    - `使用 jar 内置人设`：外部文件缺失或为空；
    - `检测到人设文件变化，已重新加载`：热加载成功。
 3. 日志 `[处理] Prompt 构造完成` 的字符数应明显大于 1000 字；如果只有几百字，说明加载的是旧版通用回退。
-4. 推荐 `deepseek.model=deepseek-chat`；指令跟随能力较弱的模型别名可能产生人设漂移。
+4. 推荐 `deepseek.model=deepseek-flash`；旧的 `deepseek-chat` 已弃用。
 5. 修改 `persona.txt` 后无需重启；下一条 @ 会自动使用新内容。如果没生效，确认修改的是日志中显示的那个文件。
 
 ### 回复内容被截断
@@ -975,7 +975,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.15.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.15.1`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

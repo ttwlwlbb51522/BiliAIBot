@@ -167,7 +167,7 @@ public final class ConfigLoader {
                 new AppConfig.DeepSeek(
                         apiKey,
                         baseUrl,
-                        string(props, "deepseek.model", "deepseek-chat"),
+                        string(props, "deepseek.model", "deepseek-flash"),
                         temperature,
                         maxTokens,
                         deepSeekTimeout,
