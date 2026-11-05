@@ -134,7 +134,9 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             int maxResults,
             int minScore,
             String shareMode,
-            Path seenFile
+            Path seenFile,
+            boolean autoEnabled,
+            int autoIntervalMinutes
     ) {
     }
 

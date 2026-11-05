@@ -403,10 +403,14 @@ public final class BilibiliClient {
     }
 
     public List<SearchVideo> searchVideos(String keyword, int limit) {
+        return searchVideos(keyword, limit, 1);
+    }
+
+    public List<SearchVideo> searchVideos(String keyword, int limit, int page) {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("search_type", "video");
         params.put("keyword", keyword);
-        params.put("page", "1");
+        params.put("page", Integer.toString(Math.max(1, page)));
         params.put("page_size", Integer.toString(Math.max(1, Math.min(limit, 20))));
         JsonNode root = signedGet("https://api.bilibili.com/x/web-interface/wbi/search/type",
                 params, "https://search.bilibili.com/");

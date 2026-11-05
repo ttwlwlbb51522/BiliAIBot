@@ -49,6 +49,7 @@ public final class SelfBrowseService {
     private final ReplyFormatter formatter;
     private final Set<String> seen = new LinkedHashSet<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private int autoPage = 1;
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "bili-deepseek-browse");
         thread.setDaemon(true);
@@ -83,7 +84,7 @@ public final class SelfBrowseService {
         log.info("[刷视频] 收到手动请求，关键词：{}", query);
         executor.submit(() -> {
             try {
-                browse(query);
+                browse(query, config.browse().maxVideos(), config.browse().maxResults(), 1, false);
             } catch (Exception e) {
                 log.warn("[刷视频] 执行失败: {}", e.getMessage());
                 log.debug("刷视频异常详情", e);
@@ -93,17 +94,46 @@ public final class SelfBrowseService {
         });
     }
 
-    private void browse(String keyword) {
-        List<SearchVideo> videos = bilibili.searchVideos(keyword, config.browse().maxVideos());
+    public void triggerAuto() {
+        if (!config.browse().autoEnabled()) {
+            return;
+        }
+        String query = config.browse().keyword();
+        if (!running.compareAndSet(false, true)) {
+            log.debug("[刷视频] 上一轮尚未结束，跳过本轮自动任务");
+            return;
+        }
+        int page = autoPage;
+        autoPage = autoPage >= 50 ? 1 : autoPage + 1;
+        executor.submit(() -> {
+            try {
+                log.info("[刷视频] 自动任务开始，页码={}，关键词={}", page, query);
+                browse(query, config.browse().maxVideos(), 1, page, true);
+            } catch (Exception e) {
+                log.warn("[刷视频] 自动任务失败: {}", e.getMessage());
+                log.debug("自动刷视频异常详情", e);
+            } finally {
+                running.set(false);
+            }
+        });
+    }
+
+    private void browse(String keyword, int searchLimit, int maxResults, int page, boolean auto) {
+        List<SearchVideo> videos = bilibili.searchVideos(keyword, searchLimit, page);
         if (videos.isEmpty()) {
-            log.info("[刷视频] 没有搜索到视频");
+            log.info("[刷视频] 第 {} 页没有搜索到视频", page);
             return;
         }
         int shared = 0;
+        int processed = 0;
         for (SearchVideo video : videos) {
             if (seen.contains(video.bvid())) {
                 continue;
             }
+            if (auto && processed >= 1) {
+                break;
+            }
+            processed++;
             seen.add(video.bvid());
             log.info("[刷视频] 查看：{}（{}）", video.title(), video.bvid());
             String summary;
@@ -117,14 +147,15 @@ public final class SelfBrowseService {
             }
             ScoreResult result = score(video, summary);
             log.info("[刷视频] 评分={} 理由={}", result.score(), result.reason());
-            if (result.score() < config.browse().minScore() || shared >= config.browse().maxResults()) {
+            if (result.score() < config.browse().minScore() || shared >= maxResults) {
                 continue;
             }
             share(video, result, summary);
             shared++;
         }
         saveSeen();
-        log.info("[刷视频] 本轮完成：搜索 {} 条，分享 {} 条", videos.size(), shared);
+        log.info("[刷视频] 本轮完成：页码={} 搜索 {} 条，实际查看 {} 条，分享 {} 条",
+                page, videos.size(), processed, shared);
     }
 
     private ScoreResult score(SearchVideo video, String summary) {

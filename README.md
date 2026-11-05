@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.16.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.17.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -647,9 +647,21 @@ browse.max-results=2
 browse.min-score=70
 browse.share-mode=dm
 browse.seen-file=data/browse-seen.json
+
+# 自动刷视频：每 5 分钟处理一条新视频
+browse.auto-enabled=true
+browse.auto-interval-minutes=5
 ```
 
-> 这是手动任务，不会自动定时触发。`bilibili.dry-run=true` 时不会真正私聊或评论。
+自动任务：
+
+- 每 `browse.auto-interval-minutes` 分钟触发一次
+- 每次只实际查看并处理一条新视频
+- 会自动轮换搜索页码，避免卡在第一页
+- 与手动 `browse` 共用评分和分享逻辑
+- 关闭自动任务：`browse.auto-enabled=false`
+
+`browse.share-mode=comment` 时评论进入草稿审核；`dm` 时直接私聊主人。`bilibili.dry-run=true` 时不会真正私聊或评论。
 
 ### 直播弹幕
 
@@ -986,7 +998,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.16.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.17.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

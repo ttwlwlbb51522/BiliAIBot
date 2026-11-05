@@ -96,7 +96,7 @@ public final class BotApplication {
         SelfBrowseService browseService = new SelfBrowseService(
                 config, bilibili, deepSeek, bot, dailyStats, notifyService, draftService);
         BotRunner runner = new BotRunner(config, service, recommendationService,
-                privateMessageService, notifyService, liveService);
+                privateMessageService, notifyService, liveService, browseService);
 
         Runtime.getRuntime().addShutdownHook(new Thread(runner::close, "bili-deepseek-shutdown"));
 

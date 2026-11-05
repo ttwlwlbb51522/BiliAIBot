@@ -238,7 +238,9 @@ public final class ConfigLoader {
                         intInRange(props, "browse.min-score", 70, 0, 100),
                         browseMode(props),
                         Paths.get(string(props, "browse.seen-file", "data/browse-seen.json"))
-                                .toAbsolutePath().normalize()
+                                .toAbsolutePath().normalize(),
+                        bool(props, "browse.auto-enabled", true),
+                        intInRange(props, "browse.auto-interval-minutes", 5, 1, 1440)
                 ),
                 new AppConfig.App(stateFile, sessionFile)
         );
