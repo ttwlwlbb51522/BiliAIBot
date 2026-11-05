@@ -134,7 +134,7 @@ public final class FrameAnalyzer {
         String body = MAPPER.writeValueAsString(payload);
         String url = config.visionBaseUrl().replaceAll("/+$", "");
         if (!url.endsWith("/chat/completions")) {
-            url += "/v1/chat/completions";
+            url += "/chat/completions";
         }
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofSeconds(120))

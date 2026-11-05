@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.15.1**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.15.2**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -672,7 +672,18 @@ browse.seen-file=data/browse-seen.json
 | `video.max-seconds`     | `30`     | 最多截取视频前多少秒                              |
 | `video.vision-base-url` | 空        | OpenAI 兼容视觉接口地址                         |
 | `video.vision-api-key`  | 空        | 视觉接口 Key                                 |
-| `video.vision-model`    | 空        | 视觉模型名称，例如支持 image_url 的模型               |
+| `video.vision-model`    | 空        | 视觉模型名称，例如 `deepseek-flash`             |
+
+使用 DeepSeek 官方视觉接口时可以直接配置：
+
+```properties
+video.frames-enabled=true
+video.vision-base-url=https://api.deepseek.com
+video.vision-api-key=你的DeepSeekKey
+video.vision-model=deepseek-flash
+```
+
+`deepseek-flash` 原生支持 `image_url` 图片输入；旧的 `deepseek-v4-flash-vision-exp` 仍可被接受，但已被官方归到最新 Flash 模型。
 
 ### 通知与日报
 
@@ -975,7 +986,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.15.1`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.15.2`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

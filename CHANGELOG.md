@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.15.2] - 2026-11-05
+
+### 修复
+
+- 视觉接口地址拼接改为 `/chat/completions`，可直接使用 `https://api.deepseek.com`。
+- 文档明确推荐 `deepseek-flash` 作为视觉模型。
+
 ## [1.15.1] - 2026-11-05
 
 ### 修复
