@@ -5,6 +5,7 @@ import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.config.ConfigException;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteFolder;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteVideo;
+import cn.citprobe.bilibot.live.LiveDanmaku;
 import cn.citprobe.bilibot.pm.PrivateMessageModels.PrivateMessage;
 import cn.citprobe.bilibot.pm.PrivateMessageModels.PrivateSession;
 import cn.citprobe.bilibot.recommend.RecommendationModels.RelatedVideo;
@@ -398,6 +399,53 @@ public final class BilibiliClient {
 
     public JsonNode getJson(String url, String referer) {
         return execute(baseRequest(url, referer).GET().build());
+    }
+
+    public List<LiveDanmaku> fetchLiveDanmaku(long roomId) {
+        JsonNode root = getJson(
+                "https://api.live.bilibili.com/xlive/web-room/v1/dM/gethistory?roomid=" + roomId,
+                "https://live.bilibili.com/" + roomId);
+        if (root.path("code").asInt(-1) != 0) {
+            throw new BilibiliApiException(root.path("code").asInt(-1), 200,
+                    "读取直播弹幕失败: " + root.path("message").asText(""));
+        }
+        JsonNode room = root.path("data").path("room");
+        List<LiveDanmaku> result = new ArrayList<>();
+        if (room.isArray()) {
+            for (JsonNode node : room) {
+                String text = node.path("text").asText("");
+                if (text.isBlank()) {
+                    continue;
+                }
+                result.add(new LiveDanmaku(
+                        node.path("uid").asLong(0),
+                        node.path("nickname").asText(""),
+                        text,
+                        node.path("timeline").asText("")
+                ));
+            }
+        }
+        return result;
+    }
+
+    public void sendLiveDanmaku(long roomId, String text) {
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("color", "16777215");
+        form.put("fontsize", "25");
+        form.put("mode", "1");
+        form.put("msg", text);
+        form.put("rnd", Long.toString(System.currentTimeMillis() / 1000));
+        form.put("roomid", Long.toString(roomId));
+        form.put("csrf", csrf);
+        form.put("csrf_token", csrf);
+        HttpRequest request = baseRequest("https://api.live.bilibili.com/msg/send",
+                "https://live.bilibili.com/" + roomId)
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("Origin", "https://live.bilibili.com")
+                .POST(HttpRequest.BodyPublishers.ofString(encodeForm(form), StandardCharsets.UTF_8))
+                .build();
+        JsonNode root = execute(request);
+        checkCode(root, "发送直播弹幕");
     }
 
     public String cookieHeader() {

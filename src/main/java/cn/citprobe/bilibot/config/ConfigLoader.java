@@ -225,6 +225,12 @@ public final class ConfigLoader {
                         string(props, "video.vision-api-key", ""),
                         string(props, "video.vision-model", "")
                 ),
+                new AppConfig.Live(
+                        bool(props, "live.enabled", false),
+                        positiveLongOrZero(props, "live.room-id"),
+                        intInRange(props, "live.poll-seconds", 30, 10, 600),
+                        bool(props, "live.only-owner", true)
+                ),
                 new AppConfig.App(stateFile, sessionFile)
         );
 
@@ -384,6 +390,16 @@ public final class ConfigLoader {
             }
         }
         return List.copyOf(aliases);
+    }
+
+    private static long positiveLongOrZero(Properties props, String key) {
+        String value = string(props, key, "0");
+        try {
+            long parsed = Long.parseLong(value);
+            return Math.max(0, parsed);
+        } catch (NumberFormatException e) {
+            throw new ConfigException(key + " 必须是数字");
+        }
     }
 
     private static String notifyType(Properties props) {

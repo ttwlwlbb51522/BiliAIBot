@@ -2,6 +2,7 @@ package cn.citprobe.bilibot;
 
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.config.AppConfig;
+import cn.citprobe.bilibot.live.LiveDanmakuService;
 import cn.citprobe.bilibot.notify.NotifyService;
 import cn.citprobe.bilibot.pm.PrivateMessageService;
 import cn.citprobe.bilibot.recommend.RecommendationService;
@@ -27,34 +28,43 @@ public final class BotRunner {
     private final RecommendationService recommendationService;
     private final PrivateMessageService privateMessageService;
     private final NotifyService notifyService;
+    private final LiveDanmakuService liveService;
     private final ScheduledExecutorService scheduler;
     private final ScheduledExecutorService recommendationScheduler;
     private final ScheduledExecutorService privateMessageScheduler;
     private final ScheduledExecutorService notifyScheduler;
+    private final ScheduledExecutorService liveScheduler;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile long lastAuthLogAt;
     private volatile long lastRiskLogAt;
 
     public BotRunner(AppConfig config, BotService service) {
-        this(config, service, null, null, null);
+        this(config, service, null, null, null, null);
     }
 
     public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService) {
-        this(config, service, recommendationService, null, null);
+        this(config, service, recommendationService, null, null, null);
     }
 
     public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService,
                      PrivateMessageService privateMessageService) {
-        this(config, service, recommendationService, privateMessageService, null);
+        this(config, service, recommendationService, privateMessageService, null, null);
     }
 
     public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService,
                      PrivateMessageService privateMessageService, NotifyService notifyService) {
+        this(config, service, recommendationService, privateMessageService, notifyService, null);
+    }
+
+    public BotRunner(AppConfig config, BotService service, RecommendationService recommendationService,
+                     PrivateMessageService privateMessageService, NotifyService notifyService,
+                     LiveDanmakuService liveService) {
         this.config = config;
         this.service = service;
         this.recommendationService = recommendationService;
         this.privateMessageService = privateMessageService;
         this.notifyService = notifyService;
+        this.liveService = liveService;
         AtomicInteger counter = new AtomicInteger();
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-poll-" + counter.incrementAndGet());
@@ -73,6 +83,11 @@ public final class BotRunner {
         });
         this.notifyScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-notify");
+            thread.setDaemon(false);
+            return thread;
+        });
+        this.liveScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "bili-deepseek-live");
             thread.setDaemon(false);
             return thread;
         });
@@ -104,6 +119,14 @@ public final class BotRunner {
                     this::summarySafely,
                     60,
                     600,
+                    TimeUnit.SECONDS
+            );
+        }
+        if (liveService != null && config.live().enabled() && config.live().roomId() > 0) {
+            liveScheduler.scheduleWithFixedDelay(
+                    this::liveSafely,
+                    30,
+                    config.live().pollSeconds(),
                     TimeUnit.SECONDS
             );
         }
@@ -166,6 +189,15 @@ public final class BotRunner {
         }
     }
 
+    private void liveSafely() {
+        try {
+            liveService.runOnce();
+        } catch (Exception e) {
+            log.warn("[直播] 弹幕轮询失败: {}", e.getMessage());
+            log.debug("直播弹幕异常详情", e);
+        }
+    }
+
     private void summarySafely() {
         try {
             notifyService.maybeDailySummary();
@@ -186,6 +218,7 @@ public final class BotRunner {
         recommendationScheduler.shutdownNow();
         privateMessageScheduler.shutdownNow();
         notifyScheduler.shutdownNow();
+        liveScheduler.shutdownNow();
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                 log.warn("轮询线程未在 5 秒内停止");
@@ -193,6 +226,7 @@ public final class BotRunner {
             recommendationScheduler.awaitTermination(5, TimeUnit.SECONDS);
             privateMessageScheduler.awaitTermination(5, TimeUnit.SECONDS);
             notifyScheduler.awaitTermination(5, TimeUnit.SECONDS);
+            liveScheduler.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

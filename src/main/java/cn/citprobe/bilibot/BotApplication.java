@@ -12,6 +12,7 @@ import cn.citprobe.bilibot.config.ConfigLoader;
 import cn.citprobe.bilibot.console.BotConsole;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
 import cn.citprobe.bilibot.draft.DraftService;
+import cn.citprobe.bilibot.live.LiveDanmakuService;
 import cn.citprobe.bilibot.notify.DailyStats;
 import cn.citprobe.bilibot.notify.NotifyService;
 import cn.citprobe.bilibot.pm.PrivateMessageService;
@@ -89,8 +90,10 @@ public final class BotApplication {
                 config, bilibili, deepSeek, dailyStats);
         PrivateMessageService privateMessageService = new PrivateMessageService(
                 config, bilibili, deepSeek, bot, dailyStats);
+        LiveDanmakuService liveService = new LiveDanmakuService(
+                config, bilibili, deepSeek, bot, dailyStats);
         BotRunner runner = new BotRunner(config, service, recommendationService,
-                privateMessageService, notifyService);
+                privateMessageService, notifyService, liveService);
 
         Runtime.getRuntime().addShutdownHook(new Thread(runner::close, "bili-deepseek-shutdown"));
 

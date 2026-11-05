@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.13.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.14.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -616,6 +616,17 @@ sudo systemctl status bilibili-bot
 | `risk.dedup-hours`          | `24`                | 重复写指纹保留时间                  |
 | `risk.state-file`           | `data/traffic.json` | 请求保护状态文件                   |
 
+### 直播弹幕
+
+| 配置                 | 默认值   | 说明                         |
+|--------------------|-------|----------------------------|
+| `live.enabled`     | `false` | 是否轮询直播间弹幕并回复                |
+| `live.room-id`     | `0`   | 直播间房间号                      |
+| `live.poll-seconds` | `30`  | 弹幕轮询间隔，最小 10 秒              |
+| `live.only-owner`  | `true` | 是否只回复主人的弹幕；false 回复所有人      |
+
+> 当前使用直播历史弹幕轮询，不是 WebSocket 实时流。
+
 ### 视频画面分析
 
 | 配置                      | 默认值      | 说明                                      |
@@ -929,7 +940,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.13.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.14.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 
