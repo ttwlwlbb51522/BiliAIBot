@@ -18,6 +18,8 @@ class ConsoleCommandTest {
         assertEquals(ConsoleCommand.HELP, ConsoleCommand.parse("?"));
         assertEquals(ConsoleCommand.STATUS, ConsoleCommand.parse("status"));
         assertEquals(ConsoleCommand.VERSION, ConsoleCommand.parse("version"));
+        assertEquals(ConsoleCommand.DRAFTS, ConsoleCommand.parse("drafts"));
+        assertEquals(ConsoleCommand.DRAFTS, ConsoleCommand.parse("drafts list"));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse("reload"));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse(""));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse(null));

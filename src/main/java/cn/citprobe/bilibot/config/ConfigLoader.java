@@ -177,7 +177,9 @@ public final class ConfigLoader {
                         string(props, "reply.prefix", ""),
                         fallbackText,
                         systemPromptFile,
-                        maxContextChars
+                        maxContextChars,
+                        otherUsersMode(props),
+                        intInRange(props, "reply.same-person-cooldown-days", 0, 0, 3650)
                 ),
                 new AppConfig.Recommendation(
                         bool(props, "recommend.enabled", false),
@@ -361,6 +363,15 @@ public final class ConfigLoader {
             }
         }
         return List.copyOf(aliases);
+    }
+
+    private static String otherUsersMode(Properties props) {
+        String value = string(props, "reply.other-users-mode", "direct")
+                .toLowerCase(Locale.ROOT);
+        if (!value.equals("direct") && !value.equals("draft")) {
+            throw new ConfigException("reply.other-users-mode 只能是 direct 或 draft");
+        }
+        return value;
     }
 
     private static List<Long> parseLongList(String value) {

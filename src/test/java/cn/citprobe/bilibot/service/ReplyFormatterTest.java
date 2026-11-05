@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ReplyFormatterTest {
 
     private static AppConfig.Reply reply(int maxLength, boolean mentionOwner) {
-        return new AppConfig.Reply(maxLength, mentionOwner, "", "兜底回复", Path.of("prompt/system.txt"), 3000);
+        return new AppConfig.Reply(maxLength, mentionOwner, "", "兜底回复", Path.of("prompt/system.txt"), 3000,
+                "direct", 0);
     }
 
     @Test

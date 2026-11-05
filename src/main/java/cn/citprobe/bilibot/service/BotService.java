@@ -10,6 +10,7 @@ import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.deepseek.ChatMessage;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
 import cn.citprobe.bilibot.deepseek.DeepSeekException;
+import cn.citprobe.bilibot.draft.DraftService;
 import cn.citprobe.bilibot.mention.MentionEvent;
 import cn.citprobe.bilibot.mention.MentionEventFactory;
 import cn.citprobe.bilibot.mention.MentionSelector;
@@ -44,6 +45,7 @@ public final class BotService {
     private final BotIdentity bot;
     private final PromptBuilder promptBuilder;
     private final ReplyFormatter replyFormatter;
+    private final DraftService drafts;
     private final Map<Long, Integer> attempts = new HashMap<>();
     private final Set<Long> loggedEventIds = new LinkedHashSet<>();
     private final long firstRunCutoff;
@@ -53,13 +55,15 @@ public final class BotService {
                       DeepSeekClient deepSeek,
                       StateStore state,
                       BotIdentity bot,
-                      PromptBuilder promptBuilder) {
+                      PromptBuilder promptBuilder,
+                      DraftService drafts) {
         this.config = config;
         this.bilibili = bilibili;
         this.deepSeek = deepSeek;
         this.state = state;
         this.bot = bot;
         this.promptBuilder = promptBuilder;
+        this.drafts = drafts;
         this.replyFormatter = new ReplyFormatter(config.reply());
         this.firstRunCutoff = Instant.now().getEpochSecond() - config.bilibili().firstRunGraceSeconds();
     }
@@ -237,6 +241,13 @@ public final class BotService {
                     event.eventId(), event.sourceRpid(), ageSeconds(event));
             return;
         }
+        boolean owner = event.authorUid() == config.bilibili().ownerUid();
+        if (!owner && drafts != null && drafts.isCooling(event.authorUid())) {
+            state.markHandled(event);
+            log.info("[过滤] 网友 {} 仍在同人限频期内，跳过: event={}",
+                    event.authorUid(), event.eventId());
+            return;
+        }
 
         CommentTarget target = event.toTarget();
         long start = System.currentTimeMillis();
@@ -261,7 +272,11 @@ public final class BotService {
             String reply = replyFormatter.format(modelOutput, event.authorName());
             log.info("[处理] 回复整理完成: {} 字", reply.length());
 
-            if (config.bilibili().dryRun()) {
+            if (!owner && drafts != null && drafts.draftEnabled()) {
+                drafts.save(event, reply);
+                drafts.markReplied(event.authorUid());
+                log.info("[草稿] 网友回复进入待审队列，未直接发送: event={}", event.eventId());
+            } else if (config.bilibili().dryRun()) {
                 log.info("[发送] DRY-RUN 不实际发表评论 | event={} comment={} | 拟回复：\n{}",
                         event.eventId(), event.sourceRpid(), reply);
             } else {
@@ -269,6 +284,9 @@ public final class BotService {
                         target.oid(), target.type(), target.root(), target.parent(),
                         preview(reply, 500));
                 long rpid = bilibili.addReply(target, reply);
+                if (!owner && drafts != null) {
+                    drafts.markReplied(event.authorUid());
+                }
                 log.info("[发送] 成功: event={}, 新评论 rpid={}, 总耗时={}ms, 内容={}",
                         event.eventId(), rpid, System.currentTimeMillis() - start,
                         preview(reply, 500));

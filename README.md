@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.8.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.9.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -313,6 +313,9 @@ java -jar target\bilibili-deepseek-bot.jar D:\path\to\application.properties
   help     显示此帮助
   status   查看运行状态和运行时长
   version  查看程序版本
+  drafts   查看待审草稿
+  drafts approve <id>  批准并发送草稿
+  drafts drop <id>     丢弃草稿
   stop     安全停止机器人（也可用 shutdown/exit/quit）
 ```
 
@@ -587,6 +590,8 @@ sudo systemctl status bilibili-bot
 | `reply.fallback-text`      | `嗯嗯，我在听，你继续说～` | 模型返回空内容时的兜底回复                |
 | `reply.system-prompt-file` | `persona.txt`  | 人设文件，自动生成在配置文件/jar 同级，支持热更新  |
 | `reply.max-context-chars`  | `3000`         | 评论串上下文最大字符数                  |
+| `reply.other-users-mode`   | `draft`        | 其他人回复：draft 草稿待审 / direct 直接发送 |
+| `reply.same-person-cooldown-days` | `30`    | 同一网友多少天内最多回复一次，0 关闭            |
 
 ### 运行
 
@@ -898,7 +903,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.8.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.9.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

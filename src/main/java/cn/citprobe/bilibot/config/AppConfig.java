@@ -62,7 +62,9 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             String prefix,
             String fallbackText,
             Path systemPromptFile,
-            int maxContextChars
+            int maxContextChars,
+            String otherUsersMode,
+            int samePersonCooldownDays
     ) {
     }
 

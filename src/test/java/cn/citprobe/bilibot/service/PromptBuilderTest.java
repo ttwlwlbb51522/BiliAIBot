@@ -32,7 +32,7 @@ class PromptBuilderTest {
     }
 
     private AppConfig.Reply replyConfig(Path promptFile) {
-        return new AppConfig.Reply(500, true, "", "兜底回复", promptFile, 3000);
+        return new AppConfig.Reply(500, true, "", "兜底回复", promptFile, 3000, "direct", 0);
     }
 
     @Test

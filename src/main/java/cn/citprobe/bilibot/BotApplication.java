@@ -11,6 +11,7 @@ import cn.citprobe.bilibot.config.ConfigException;
 import cn.citprobe.bilibot.config.ConfigLoader;
 import cn.citprobe.bilibot.console.BotConsole;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
+import cn.citprobe.bilibot.draft.DraftService;
 import cn.citprobe.bilibot.pm.PrivateMessageService;
 import cn.citprobe.bilibot.recommend.RecommendationService;
 import cn.citprobe.bilibot.service.BotService;
@@ -76,7 +77,8 @@ public final class BotApplication {
         DeepSeekClient deepSeek = new DeepSeekClient(config.deepseek());
         StateStore state = new StateStore(config.app().stateFile());
         PromptBuilder promptBuilder = new PromptBuilder(config.reply(), config.bilibili(), bot);
-        BotService service = new BotService(config, bilibili, deepSeek, state, bot, promptBuilder);
+        DraftService draftService = new DraftService(config, bilibili);
+        BotService service = new BotService(config, bilibili, deepSeek, state, bot, promptBuilder, draftService);
         RecommendationService recommendationService = new RecommendationService(config, bilibili, deepSeek);
         PrivateMessageService privateMessageService = new PrivateMessageService(
                 config, bilibili, deepSeek, bot);
@@ -99,7 +101,7 @@ public final class BotApplication {
         log.info("开始监听 @ 消息。输入 help 查看控制台命令，输入 stop 安全退出。");
         Instant startedAt = Instant.now();
         runner.start();
-        new BotConsole(runner, startedAt).start();
+        new BotConsole(runner, startedAt, draftService).start();
     }
 
     private static Path requestedConfigPath(String[] args) {

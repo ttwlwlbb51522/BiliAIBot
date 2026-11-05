@@ -10,6 +10,7 @@ public enum ConsoleCommand {
     HELP,
     STATUS,
     VERSION,
+    DRAFTS,
     UNKNOWN;
 
     public static ConsoleCommand parse(String input) {
@@ -17,6 +18,9 @@ public enum ConsoleCommand {
             return UNKNOWN;
         }
         String command = input.trim().toLowerCase(Locale.ROOT);
+        if (command.equals("drafts") || command.startsWith("drafts ")) {
+            return DRAFTS;
+        }
         return switch (command) {
             case "stop", "shutdown", "exit", "quit" -> STOP;
             case "help", "?" -> HELP;

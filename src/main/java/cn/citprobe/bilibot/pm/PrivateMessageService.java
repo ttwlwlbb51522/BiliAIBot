@@ -58,7 +58,9 @@ public final class PrivateMessageService {
                 config.reply().prefix(),
                 config.reply().fallbackText(),
                 config.reply().systemPromptFile(),
-                config.reply().maxContextChars()
+                config.reply().maxContextChars(),
+                config.reply().otherUsersMode(),
+                config.reply().samePersonCooldownDays()
         );
         this.formatter = new ReplyFormatter(pmReply);
     }
