@@ -153,6 +153,19 @@ app.state-file=data/state.json
 app.session-file=data/session.json
 
 
+# ---------- 手动刷视频 ----------
+
+# 控制台输入 browse 时使用的搜索词。
+browse.keyword=蓝色大肥鱼
+browse.max-videos=5
+browse.max-results=2
+browse.min-score=70
+
+# 分享方式：dm=私聊主人，comment=在视频下发评论，none=只写日志。
+browse.share-mode=dm
+browse.seen-file=data/browse-seen.json
+
+
 # ---------- 直播弹幕 ----------
 
 # 是否轮询直播间最近弹幕并回复。默认只回复主人。

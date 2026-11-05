@@ -20,6 +20,8 @@ class ConsoleCommandTest {
         assertEquals(ConsoleCommand.VERSION, ConsoleCommand.parse("version"));
         assertEquals(ConsoleCommand.DRAFTS, ConsoleCommand.parse("drafts"));
         assertEquals(ConsoleCommand.DRAFTS, ConsoleCommand.parse("drafts list"));
+        assertEquals(ConsoleCommand.BROWSE, ConsoleCommand.parse("browse"));
+        assertEquals(ConsoleCommand.BROWSE, ConsoleCommand.parse("browse 猫咪"));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse("reload"));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse(""));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse(null));

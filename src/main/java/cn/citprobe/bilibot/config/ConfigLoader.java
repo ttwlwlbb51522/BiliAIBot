@@ -231,6 +231,15 @@ public final class ConfigLoader {
                         intInRange(props, "live.poll-seconds", 30, 10, 600),
                         bool(props, "live.only-owner", true)
                 ),
+                new AppConfig.Browse(
+                        string(props, "browse.keyword", "蓝色大肥鱼"),
+                        intInRange(props, "browse.max-videos", 5, 1, 20),
+                        intInRange(props, "browse.max-results", 2, 1, 5),
+                        intInRange(props, "browse.min-score", 70, 0, 100),
+                        browseMode(props),
+                        Paths.get(string(props, "browse.seen-file", "data/browse-seen.json"))
+                                .toAbsolutePath().normalize()
+                ),
                 new AppConfig.App(stateFile, sessionFile)
         );
 
@@ -400,6 +409,14 @@ public final class ConfigLoader {
         } catch (NumberFormatException e) {
             throw new ConfigException(key + " 必须是数字");
         }
+    }
+
+    private static String browseMode(Properties props) {
+        String value = string(props, "browse.share-mode", "dm").toLowerCase(Locale.ROOT);
+        if (!value.equals("dm") && !value.equals("comment") && !value.equals("none")) {
+            throw new ConfigException("browse.share-mode 只能是 dm、comment 或 none");
+        }
+        return value;
     }
 
     private static String notifyType(Properties props) {

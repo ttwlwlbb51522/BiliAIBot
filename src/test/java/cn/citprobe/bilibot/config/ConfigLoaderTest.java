@@ -56,6 +56,8 @@ class ConfigLoaderTest {
         assertEquals(6, config.video().frameCount());
         assertFalse(config.live().enabled());
         assertEquals(0, config.live().roomId());
+        assertEquals("蓝色大肥鱼", config.browse().keyword());
+        assertEquals("dm", config.browse().shareMode());
         assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());
         assertTrue(config.app().stateFile().isAbsolute());
         assertTrue(config.app().sessionFile().isAbsolute());

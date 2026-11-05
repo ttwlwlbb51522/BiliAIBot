@@ -11,6 +11,7 @@ public enum ConsoleCommand {
     STATUS,
     VERSION,
     DRAFTS,
+    BROWSE,
     UNKNOWN;
 
     public static ConsoleCommand parse(String input) {
@@ -20,6 +21,9 @@ public enum ConsoleCommand {
         String command = input.trim().toLowerCase(Locale.ROOT);
         if (command.equals("drafts") || command.startsWith("drafts ")) {
             return DRAFTS;
+        }
+        if (command.equals("browse") || command.startsWith("browse ")) {
+            return BROWSE;
         }
         return switch (command) {
             case "stop", "shutdown", "exit", "quit" -> STOP;

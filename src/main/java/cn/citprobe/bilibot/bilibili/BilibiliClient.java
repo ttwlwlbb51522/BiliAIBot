@@ -3,6 +3,7 @@ package cn.citprobe.bilibot.bilibili;
 import cn.citprobe.bilibot.bilibili.model.BilibiliDtos;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.config.ConfigException;
+import cn.citprobe.bilibot.browse.SearchVideo;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteFolder;
 import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteVideo;
 import cn.citprobe.bilibot.live.LiveDanmaku;
@@ -399,6 +400,44 @@ public final class BilibiliClient {
 
     public JsonNode getJson(String url, String referer) {
         return execute(baseRequest(url, referer).GET().build());
+    }
+
+    public List<SearchVideo> searchVideos(String keyword, int limit) {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("search_type", "video");
+        params.put("keyword", keyword);
+        params.put("page", "1");
+        params.put("page_size", Integer.toString(Math.max(1, Math.min(limit, 20))));
+        JsonNode root = signedGet("https://api.bilibili.com/x/web-interface/wbi/search/type",
+                params, "https://search.bilibili.com/");
+        if (root.path("code").asInt(-1) != 0) {
+            throw new BilibiliApiException(root.path("code").asInt(-1), 200,
+                    "搜索视频失败: " + root.path("message").asText(""));
+        }
+        JsonNode result = root.path("data").path("result");
+        List<SearchVideo> videos = new ArrayList<>();
+        if (result.isArray()) {
+            for (JsonNode node : result) {
+                String bvid = node.path("bvid").asText("");
+                if (bvid.isBlank()) {
+                    continue;
+                }
+                videos.add(new SearchVideo(
+                        node.path("aid").asLong(0),
+                        bvid,
+                        node.path("title").asText("").replaceAll("<[^>]+>", ""),
+                        node.path("description").asText(""),
+                        node.path("author").asText(""),
+                        node.path("play").asLong(0),
+                        node.path("pubdate").asLong(0),
+                        node.path("arcurl").asText("https://www.bilibili.com/video/" + bvid)
+                ));
+                if (videos.size() >= limit) {
+                    break;
+                }
+            }
+        }
+        return videos;
     }
 
     public List<LiveDanmaku> fetchLiveDanmaku(long roomId) {

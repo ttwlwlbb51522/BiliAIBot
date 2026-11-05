@@ -1,6 +1,7 @@
 package cn.citprobe.bilibot.console;
 
 import cn.citprobe.bilibot.BotRunner;
+import cn.citprobe.bilibot.browse.SelfBrowseService;
 import cn.citprobe.bilibot.draft.Draft;
 import cn.citprobe.bilibot.draft.DraftService;
 import org.slf4j.Logger;
@@ -24,18 +25,25 @@ public final class BotConsole {
     private final BotRunner runner;
     private final Instant startedAt;
     private final DraftService drafts;
+    private final SelfBrowseService browse;
     private final boolean interactive;
     private final Thread thread;
     private volatile boolean stopping;
 
     public BotConsole(BotRunner runner, Instant startedAt) {
-        this(runner, startedAt, null);
+        this(runner, startedAt, null, null);
     }
 
     public BotConsole(BotRunner runner, Instant startedAt, DraftService drafts) {
+        this(runner, startedAt, drafts, null);
+    }
+
+    public BotConsole(BotRunner runner, Instant startedAt, DraftService drafts,
+                      SelfBrowseService browse) {
         this.runner = runner;
         this.startedAt = startedAt;
         this.drafts = drafts;
+        this.browse = browse;
         this.interactive = System.console() != null;
         this.thread = new Thread(this::run, "bili-deepseek-console");
         this.thread.setDaemon(true);
@@ -54,6 +62,8 @@ public final class BotConsole {
                   drafts   查看待审草稿
                   drafts approve <id>  批准并发送草稿
                   drafts drop <id>     丢弃草稿
+                  browse   手动搜索并刷“蓝色大肥鱼”相关视频
+                  browse <关键词>  使用自定义关键词刷视频
                   stop     安全停止机器人（也可用 shutdown/exit/quit）
                 """);
         System.out.flush();
@@ -91,6 +101,7 @@ public final class BotConsole {
             case STATUS -> printStatus();
             case VERSION -> printVersion();
             case DRAFTS -> handleDrafts(line);
+            case BROWSE -> handleBrowse(line);
             case UNKNOWN -> {
                 if (line != null && !line.isBlank()) {
                     System.out.println("未知命令: " + line.trim() + "，输入 help 查看可用命令");
@@ -136,6 +147,19 @@ public final class BotConsole {
             System.out.println("操作未完成，检查 id 或查看日志");
             System.out.flush();
         }
+    }
+
+    private void handleBrowse(String line) {
+        if (browse == null) {
+            System.out.println("刷视频功能未启用");
+            System.out.flush();
+            return;
+        }
+        String[] parts = line == null ? new String[0] : line.trim().split("\\s+", 2);
+        String keyword = parts.length > 1 ? parts[1] : "";
+        browse.trigger(keyword);
+        System.out.println("已开始刷视频，请查看日志");
+        System.out.flush();
     }
 
     private void printStatus() {

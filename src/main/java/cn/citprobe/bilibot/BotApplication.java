@@ -6,6 +6,7 @@ import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.bilibili.BilibiliClient;
 import cn.citprobe.bilibot.bilibili.BotIdentity;
 import cn.citprobe.bilibot.bilibili.TrafficGuard;
+import cn.citprobe.bilibot.browse.SelfBrowseService;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.config.ConfigException;
 import cn.citprobe.bilibot.config.ConfigLoader;
@@ -92,6 +93,8 @@ public final class BotApplication {
                 config, bilibili, deepSeek, bot, dailyStats);
         LiveDanmakuService liveService = new LiveDanmakuService(
                 config, bilibili, deepSeek, bot, dailyStats);
+        SelfBrowseService browseService = new SelfBrowseService(
+                config, bilibili, deepSeek, bot, dailyStats, notifyService);
         BotRunner runner = new BotRunner(config, service, recommendationService,
                 privateMessageService, notifyService, liveService);
 
@@ -112,7 +115,7 @@ public final class BotApplication {
         log.info("开始监听 @ 消息。输入 help 查看控制台命令，输入 stop 安全退出。");
         Instant startedAt = Instant.now();
         runner.start();
-        new BotConsole(runner, startedAt, draftService).start();
+        new BotConsole(runner, startedAt, draftService, browseService).start();
     }
 
     private static Path requestedConfigPath(String[] args) {

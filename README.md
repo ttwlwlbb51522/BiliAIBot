@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.14.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.15.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -316,6 +316,8 @@ java -jar target\bilibili-deepseek-bot.jar D:\path\to\application.properties
   drafts   查看待审草稿
   drafts approve <id>  批准并发送草稿
   drafts drop <id>     丢弃草稿
+  browse   手动搜索并刷“蓝色大肥鱼”相关视频
+  browse <关键词>  使用自定义关键词刷视频
   stop     安全停止机器人（也可用 shutdown/exit/quit）
 ```
 
@@ -615,6 +617,39 @@ sudo systemctl status bilibili-bot
 | `risk.write-gap-seconds`    | `120`               | 两次写操作冷却                    |
 | `risk.dedup-hours`          | `24`                | 重复写指纹保留时间                  |
 | `risk.state-file`           | `data/traffic.json` | 请求保护状态文件                   |
+
+### 手动刷视频
+
+控制台输入：
+
+```text
+browse
+browse 猫咪
+```
+
+程序会：
+
+1. 用 WBI 搜索相关视频；
+2. 对候选做标题/简介/字幕/弹幕/热评理解，配置开启时加抽帧；
+3. 调用 DeepSeek 评分，达到 `browse.min-score` 才处理；
+4. 按 `browse.share-mode` 分享：
+   - `dm`：私聊主人
+   - `comment`：在视频下发一条评论
+   - `none`：只写日志
+5. 已浏览的 BV 记录到 `data/browse-seen.json`。
+
+配置：
+
+```properties
+browse.keyword=蓝色大肥鱼
+browse.max-videos=5
+browse.max-results=2
+browse.min-score=70
+browse.share-mode=dm
+browse.seen-file=data/browse-seen.json
+```
+
+> 这是手动任务，不会自动定时触发。`bilibili.dry-run=true` 时不会真正私聊或评论。
 
 ### 直播弹幕
 
@@ -940,7 +975,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.14.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.15.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

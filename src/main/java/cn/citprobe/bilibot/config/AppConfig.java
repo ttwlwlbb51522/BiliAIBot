@@ -8,7 +8,7 @@ import java.util.List;
  */
 public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
                         Recommendation recommendation, Risk risk, Notify notification,
-                        Video video, Live live, App app) {
+                        Video video, Live live, Browse browse, App app) {
 
     public record Bilibili(
             String cookie,
@@ -125,6 +125,16 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             long roomId,
             int pollSeconds,
             boolean onlyOwner
+    ) {
+    }
+
+    public record Browse(
+            String keyword,
+            int maxVideos,
+            int maxResults,
+            int minScore,
+            String shareMode,
+            Path seenFile
     ) {
     }
 
