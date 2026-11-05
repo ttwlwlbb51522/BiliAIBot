@@ -10,6 +10,8 @@ import cn.citprobe.bilibot.recommend.RecommendationModels.FavoriteVideo;
 import cn.citprobe.bilibot.recommend.RecommendationModels.Recommendation;
 import cn.citprobe.bilibot.recommend.RecommendationModels.RelatedVideo;
 import cn.citprobe.bilibot.util.Json;
+import cn.citprobe.bilibot.video.VideoInsight;
+import cn.citprobe.bilibot.video.VideoInsightService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -41,6 +43,7 @@ public final class RecommendationService {
     private final DeepSeekClient deepSeek;
     private final DailyStats stats;
     private final RecommendationStore store;
+    private final VideoInsightService videoInsight;
 
     public RecommendationService(AppConfig config, BilibiliClient bilibili,
                                  DeepSeekClient deepSeek, DailyStats stats) {
@@ -49,6 +52,7 @@ public final class RecommendationService {
         this.deepSeek = deepSeek;
         this.stats = stats;
         this.store = new RecommendationStore(config.recommendation().outputFile());
+        this.videoInsight = new VideoInsightService(bilibili);
     }
 
     public void runOnce() {
@@ -132,8 +136,24 @@ public final class RecommendationService {
                     "https://www.bilibili.com/video/" + video.bvid(),
                     item.score(),
                     item.reason(),
-                    video.sourceTitle()
+                    video.sourceTitle(),
+                    ""
             ));
+        }
+
+        if (recommendation.videoInsightEnabled()) {
+            for (int i = 0; i < recommendations.size(); i++) {
+                Recommendation item = recommendations.get(i);
+                try {
+                    VideoInsight insight = videoInsight.analyze(item.bvid());
+                    recommendations.set(i, new Recommendation(
+                            item.aid(), item.bvid(), item.title(), item.author(), item.url(),
+                            item.score(), item.reason(), item.sourceTitle(), insight.summary()));
+                    log.info("[推荐] 文字理解完成: {} | {}", item.bvid(), item.title());
+                } catch (RuntimeException e) {
+                    log.warn("[推荐] 视频文字理解失败 {}: {}", item.bvid(), e.getMessage());
+                }
+            }
         }
 
         Instant now = Instant.now();
@@ -147,6 +167,10 @@ public final class RecommendationService {
         for (Recommendation item : recommendations) {
             log.info("[推荐] {}分 | {} | UP: {} | {} | 理由: {}",
                     item.score(), item.title(), item.author(), item.url(), item.reason());
+            if (!item.contentSummary().isBlank()) {
+                log.info("[推荐] 内容摘要: {}", truncate(item.contentSummary().replaceAll("\\s+", " "),
+                        500));
+            }
         }
     }
 

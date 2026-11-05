@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.11.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.12.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -640,6 +640,7 @@ sudo systemctl status bilibili-bot
 | `recommend.min-score`        | `70`                       | AI 评分门槛，0-100                   |
 | `recommend.favorite-folders` | 空                          | 指定收藏夹 media_id，逗号分隔；空表示自动选择公开收藏夹 |
 | `recommend.output-file`      | `data/recommendations.json` | 推荐结果 JSON 文件，不会自动私聊              |
+| `recommend.video-insight-enabled` | `false`               | 是否对最终推荐视频读取字幕/弹幕/热评并写摘要          |
 
 > 仅公开收藏夹可读。推荐结果只写日志和 JSON，不会发送 B 站私聊。
 
@@ -916,7 +917,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.11.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.12.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

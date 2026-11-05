@@ -21,7 +21,7 @@ class RecommendationStoreTest {
         RecommendationStore first = new RecommendationStore(file);
         Recommendation item = new Recommendation(
                 1L, "BV1xx", "标题", "UP", "https://www.bilibili.com/video/BV1xx",
-                88, "有趣", "收藏样本"
+                88, "有趣", "收藏样本", "内容"
         );
 
         first.save("2026-11-04T00:00:00Z", List.of(item));

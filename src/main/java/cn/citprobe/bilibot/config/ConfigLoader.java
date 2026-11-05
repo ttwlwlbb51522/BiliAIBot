@@ -192,7 +192,8 @@ public final class ConfigLoader {
                         intInRange(props, "recommend.max-results", 3, 1, 10),
                         intInRange(props, "recommend.min-score", 70, 0, 100),
                         favoriteFolderIds,
-                        recommendationFile
+                        recommendationFile,
+                        bool(props, "recommend.video-insight-enabled", false)
                 ),
                 new AppConfig.Risk(
                         bool(props, "risk.enabled", true),

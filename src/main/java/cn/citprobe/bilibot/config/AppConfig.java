@@ -80,7 +80,8 @@ public record AppConfig(Bilibili bilibili, DeepSeek deepseek, Reply reply,
             int maxResults,
             int minScore,
             List<Long> favoriteFolderIds,
-            Path outputFile
+            Path outputFile,
+            boolean videoInsightEnabled
     ) {
     }
 

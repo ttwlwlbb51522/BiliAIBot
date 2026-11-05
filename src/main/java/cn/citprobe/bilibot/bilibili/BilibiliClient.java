@@ -61,6 +61,8 @@ public final class BilibiliClient {
     private final String replyAddUrl;
     private final String threadReplyUrl;
     private final TrafficGuard traffic;
+    private volatile String wbiMixinKey;
+    private volatile long wbiLoadedAt;
 
     public BilibiliClient(AppConfig.Bilibili config) {
         this(config, NAV_URL, REPLY_ADD_URL, THREAD_REPLY_URL, null);
@@ -394,6 +396,62 @@ public final class BilibiliClient {
         }
     }
 
+    public JsonNode getJson(String url, String referer) {
+        return execute(baseRequest(url, referer).GET().build());
+    }
+
+    /**
+     * WBI 签名 GET。params 不包含 wts/w_rid，由本方法补齐。
+     */
+    public JsonNode signedGet(String baseUrl, Map<String, String> params, String referer) {
+        Map<String, String> signed = new LinkedHashMap<>(params);
+        signed.put("wts", Long.toString(System.currentTimeMillis() / 1000));
+        String mixinKey = ensureWbiKey();
+        signed.put("w_rid", WbiSigner.sign(signed, mixinKey));
+        StringBuilder url = new StringBuilder(baseUrl);
+        boolean first = true;
+        for (Map.Entry<String, String> entry : signed.entrySet()) {
+            url.append(first ? '?' : '&');
+            first = false;
+            url.append(WbiSigner.encode(entry.getKey())).append('=')
+                    .append(WbiSigner.encode(entry.getValue()));
+        }
+        return execute(baseRequest(url.toString(), referer).GET().build());
+    }
+
+    private String ensureWbiKey() {
+        String key = wbiMixinKey;
+        if (key != null && System.currentTimeMillis() - wbiLoadedAt < 12 * 3_600_000L) {
+            return key;
+        }
+        synchronized (this) {
+            if (wbiMixinKey != null && System.currentTimeMillis() - wbiLoadedAt < 12 * 3_600_000L) {
+                return wbiMixinKey;
+            }
+            JsonNode root = execute(baseRequest(navUrl, "https://www.bilibili.com/").GET().build());
+            JsonNode img = root.path("data").path("wbi_img").path("img_url");
+            JsonNode sub = root.path("data").path("wbi_img").path("sub_url");
+            String imgKey = stem(img.asText(""));
+            String subKey = stem(sub.asText(""));
+            if (imgKey.isBlank() || subKey.isBlank()) {
+                throw new BilibiliApiException(-1, 200, "无法获取 WBI 签名密钥");
+            }
+            wbiMixinKey = WbiSigner.mixinKey(imgKey, subKey);
+            wbiLoadedAt = System.currentTimeMillis();
+            return wbiMixinKey;
+        }
+    }
+
+    private static String stem(String url) {
+        if (url == null || url.isBlank()) {
+            return "";
+        }
+        int slash = url.lastIndexOf('/');
+        String name = slash >= 0 ? url.substring(slash + 1) : url;
+        int dot = name.lastIndexOf('.');
+        return dot > 0 ? name.substring(0, dot) : name;
+    }
+
     private HttpRequest.Builder baseRequest(String url, String referer) {
         return HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofSeconds(config.requestTimeoutSeconds()))
@@ -403,6 +461,30 @@ public final class BilibiliClient {
                 .header("Accept", "application/json, text/plain, */*")
                 .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
                 .header("Accept-Encoding", "identity");
+    }
+
+    public String getText(String url, String referer) {
+        if (traffic != null) {
+            traffic.beforeRead();
+        }
+        HttpResponse<String> response;
+        try {
+            response = http.send(baseRequest(url, referer).GET().build(),
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BilibiliApiException(-1, 0, "请求被中断", e);
+        } catch (IOException e) {
+            throw new BilibiliApiException(-1, 0, "访问 B 站接口失败: " + e.getMessage(), e);
+        }
+        int status = response.statusCode();
+        if (traffic != null) {
+            traffic.afterResponse(status, 0);
+        }
+        if (status >= 400) {
+            throw new BilibiliApiException(-1, status, "B 站接口 HTTP " + status);
+        }
+        return stripBom(response.body());
     }
 
     private JsonNode execute(HttpRequest request) {

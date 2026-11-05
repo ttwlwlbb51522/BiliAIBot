@@ -46,7 +46,8 @@ public final class RecommendationModels {
             String url,
             int score,
             String reason,
-            String sourceTitle
+            String sourceTitle,
+            String contentSummary
     ) {
     }
 }
