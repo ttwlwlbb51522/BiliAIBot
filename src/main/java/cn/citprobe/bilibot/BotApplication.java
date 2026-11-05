@@ -94,7 +94,7 @@ public final class BotApplication {
         LiveDanmakuService liveService = new LiveDanmakuService(
                 config, bilibili, deepSeek, bot, dailyStats);
         SelfBrowseService browseService = new SelfBrowseService(
-                config, bilibili, deepSeek, bot, dailyStats, notifyService);
+                config, bilibili, deepSeek, bot, dailyStats, notifyService, draftService);
         BotRunner runner = new BotRunner(config, service, recommendationService,
                 privateMessageService, notifyService, liveService);
 

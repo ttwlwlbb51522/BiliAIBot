@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.15.2**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.16.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -634,7 +634,7 @@ browse 猫咪
 3. 调用 DeepSeek 评分，达到 `browse.min-score` 才处理；
 4. 按 `browse.share-mode` 分享：
    - `dm`：私聊主人
-   - `comment`：在视频下发一条评论
+   - `comment`：生成评论草稿，需在控制台执行 `drafts approve <id>` 后才会发送
    - `none`：只写日志
 5. 已浏览的 BV 记录到 `data/browse-seen.json`。
 
@@ -986,7 +986,7 @@ API Key 错误、余额不足或无权限。程序不会把这类评论标记为
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.15.2`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.16.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

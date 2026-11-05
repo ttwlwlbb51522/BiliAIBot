@@ -2,10 +2,10 @@ package cn.citprobe.bilibot.browse;
 
 import cn.citprobe.bilibot.bilibili.BilibiliClient;
 import cn.citprobe.bilibot.bilibili.BotIdentity;
-import cn.citprobe.bilibot.bilibili.CommentTarget;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.deepseek.ChatMessage;
 import cn.citprobe.bilibot.deepseek.DeepSeekClient;
+import cn.citprobe.bilibot.draft.DraftService;
 import cn.citprobe.bilibot.notify.DailyStats;
 import cn.citprobe.bilibot.notify.NotifyService;
 import cn.citprobe.bilibot.service.ReplyFormatter;
@@ -44,6 +44,7 @@ public final class SelfBrowseService {
     private final BotIdentity bot;
     private final DailyStats stats;
     private final NotifyService notify;
+    private final DraftService drafts;
     private final VideoInsightService videoInsight;
     private final ReplyFormatter formatter;
     private final Set<String> seen = new LinkedHashSet<>();
@@ -55,13 +56,15 @@ public final class SelfBrowseService {
     });
 
     public SelfBrowseService(AppConfig config, BilibiliClient bilibili, DeepSeekClient deepSeek,
-                             BotIdentity bot, DailyStats stats, NotifyService notify) {
+                             BotIdentity bot, DailyStats stats, NotifyService notify,
+                             DraftService drafts) {
         this.config = config;
         this.bilibili = bilibili;
         this.deepSeek = deepSeek;
         this.bot = bot;
         this.stats = stats;
         this.notify = notify;
+        this.drafts = drafts;
         this.videoInsight = new VideoInsightService(bilibili, config.video());
         this.formatter = new ReplyFormatter(new AppConfig.Reply(
                 300, false, "", "本鱼觉得这个挺有意思", config.reply().systemPromptFile(), 2000,
@@ -170,10 +173,9 @@ public final class SelfBrowseService {
                     log.info("[刷视频] 已私聊主人：{}", video.title());
                 }
                 case "comment" -> {
-                    CommentTarget target = new CommentTarget(
-                            video.aid(), 1, 0, 0, video.url());
-                    long rpid = bilibili.addReply(target, result.comment());
-                    log.info("[刷视频] 已在视频下发评论：{} rpid={}", video.title(), rpid);
+                    drafts.saveBrowseDraft(video, result.comment(), result.reason());
+                    log.info("[刷视频] 评论已进入待审队列，请用 drafts approve 审核：{}",
+                            video.title());
                 }
                 default -> log.info("[刷视频] share-mode=none，不发送");
             }

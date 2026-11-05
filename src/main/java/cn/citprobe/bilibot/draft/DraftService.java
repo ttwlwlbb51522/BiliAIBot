@@ -2,6 +2,7 @@ package cn.citprobe.bilibot.draft;
 
 import cn.citprobe.bilibot.bilibili.BilibiliClient;
 import cn.citprobe.bilibot.bilibili.CommentTarget;
+import cn.citprobe.bilibot.browse.SearchVideo;
 import cn.citprobe.bilibot.config.AppConfig;
 import cn.citprobe.bilibot.mention.MentionEvent;
 import cn.citprobe.bilibot.notify.DailyStats;
@@ -82,6 +83,38 @@ public final class DraftService {
         return draft;
     }
 
+    /**
+     * 保存刷视频后的公开评论草稿，审批时按一级评论发送（root=0, parent=0）。
+     */
+    public Draft saveBrowseDraft(SearchVideo video, String reply, String reason) {
+        String id = System.currentTimeMillis() + "-browse-" + video.bvid();
+        Draft draft = new Draft(
+                id,
+                0,
+                0,
+                "刷视频",
+                0,
+                0,
+                video.aid(),
+                1,
+                video.title(),
+                video.url(),
+                reason,
+                reply,
+                Instant.now().toString()
+        );
+        store.add(draft);
+        if (stats != null) {
+            stats.increment("drafts");
+        }
+        if (notify != null) {
+            notify.sendDraft(draft);
+        }
+        log.info("[草稿] 已保存刷视频评论待审: id={}, 视频={}, 评论={}",
+                id, video.title(), preview(reply));
+        return draft;
+    }
+
     public List<Draft> list() {
         return store.list();
     }
@@ -132,7 +165,7 @@ public final class DraftService {
     }
 
     public void markReplied(long uid) {
-        if (config.reply().samePersonCooldownDays() <= 0) {
+        if (uid <= 0 || config.reply().samePersonCooldownDays() <= 0) {
             return;
         }
         lastReplyAt.put(uid, System.currentTimeMillis());
