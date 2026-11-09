@@ -149,7 +149,7 @@ public final class BotRunner {
             log.info("[刷视频] 自动任务已启用：每 {} 分钟一条", config.browse().autoIntervalMinutes());
             browseScheduler.scheduleWithFixedDelay(
                     this::browseSafely,
-                    60,
+                    1,
                     config.browse().autoIntervalMinutes(),
                     TimeUnit.MINUTES
             );
@@ -217,6 +217,7 @@ public final class BotRunner {
 
     private void browseSafely() {
         try {
+            log.info("[刷视频] 自动任务定时器触发");
             browseService.triggerAuto();
         } catch (Exception e) {
             log.warn("[刷视频] 自动任务触发失败: {}", e.getMessage());

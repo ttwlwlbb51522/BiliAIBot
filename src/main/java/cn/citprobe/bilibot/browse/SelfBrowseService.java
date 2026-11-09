@@ -97,11 +97,12 @@ public final class SelfBrowseService {
 
     public void triggerAuto() {
         if (!config.browse().autoEnabled()) {
+            log.debug("[刷视频] 自动任务未启用");
             return;
         }
         String query = config.browse().keyword();
         if (!running.compareAndSet(false, true)) {
-            log.debug("[刷视频] 上一轮尚未结束，跳过本轮自动任务");
+            log.info("[刷视频] 上一轮尚未结束，跳过本轮自动任务");
             return;
         }
         int page = takePage();
