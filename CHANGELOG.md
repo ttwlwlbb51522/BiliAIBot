@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-11-09
+
+### 新增
+
+- 电脑端新增 Android 管理 HTTP API，支持状态、草稿列表、批准、丢弃、日志、配置摘要和手动刷视频。
+- 新增 `admin.enabled`、`admin.bind`、`admin.port`、`admin.token`、`admin.log-file` 配置。
+- 新增 Android 控制台项目 `D:\AndroidProject\BiliAIBot`，可连接电脑端审核草稿和查看运行状态。
+
 ## [1.17.2] - 2026-11-05
 
 ### 修复

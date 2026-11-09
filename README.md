@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.17.2**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.18.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -817,6 +817,64 @@ reply.system-prompt-file=persona.txt
 
 日志默认输出到控制台和 `logs/bot.log`，可以设置环境变量 `LOG_LEVEL=DEBUG`、`LOG_DIR`。
 
+### Android 控制台
+
+Android 项目位于：
+
+```text
+D:\AndroidProject\BiliAIBot
+```
+
+电脑端开启管理接口：
+
+```properties
+admin.enabled=true
+admin.bind=0.0.0.0
+admin.port=8765
+admin.token=你的随机长令牌
+admin.log-file=logs/bot.log
+```
+
+重启后日志会出现：
+
+```text
+[管理] Android 控制接口已启动: http://0.0.0.0:8765/api/status
+```
+
+App 连接地址使用电脑局域网 IP：
+
+```text
+http://192.168.1.10:8765
+```
+
+Android 模拟器使用 `http://10.0.2.2:8765`，真机必须用电脑实际 IP。
+
+管理 API：
+
+| 方法 | 路径 | 作用 |
+|---|---|---|
+| `GET` | `/api/status` | 机器人状态、版本、统计、dry-run |
+| `GET` | `/api/drafts` | 待审草稿列表 |
+| `POST` | `/api/drafts/{id}/approve` | 批准并发送 |
+| `POST` | `/api/drafts/{id}/drop` | 丢弃草稿 |
+| `GET` | `/api/logs?lines=200` | 最近日志 |
+| `GET` | `/api/config` | 安全配置摘要 |
+| `POST` | `/api/browse?keyword=...` | 手动刷视频 |
+
+请求头需要带：
+
+```text
+X-Admin-Token: 你的令牌
+```
+
+或：
+
+```text
+Authorization: Bearer 你的令牌
+```
+
+> 管理接口是明文 HTTP，只适合可信局域网。不要直接暴露到公网；Token 泄露后立即修改并重启。
+
 ### 控制台编码
 
 程序启动时会自动识别终端编码：
@@ -999,7 +1057,7 @@ Cookie 或缓存会话已失效。程序会自动尝试账号密码登录；如�
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.17.2`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.18.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

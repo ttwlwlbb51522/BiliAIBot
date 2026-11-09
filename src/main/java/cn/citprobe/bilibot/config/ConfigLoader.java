@@ -242,6 +242,14 @@ public final class ConfigLoader {
                         bool(props, "browse.auto-enabled", true),
                         intInRange(props, "browse.auto-interval-minutes", 5, 1, 1440)
                 ),
+                new AppConfig.Admin(
+                        bool(props, "admin.enabled", false),
+                        string(props, "admin.bind", "0.0.0.0"),
+                        intInRange(props, "admin.port", 8765, 1024, 65535),
+                        string(props, "admin.token", ""),
+                        Paths.get(string(props, "admin.log-file", "logs/bot.log"))
+                                .toAbsolutePath().normalize()
+                ),
                 new AppConfig.App(stateFile, sessionFile)
         );
 

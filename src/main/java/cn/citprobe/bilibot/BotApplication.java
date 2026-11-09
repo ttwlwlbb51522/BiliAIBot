@@ -1,5 +1,6 @@
 package cn.citprobe.bilibot;
 
+import cn.citprobe.bilibot.admin.AdminServer;
 import cn.citprobe.bilibot.auth.BilibiliAuthException;
 import cn.citprobe.bilibot.auth.BilibiliAuthService;
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
@@ -97,8 +98,22 @@ public final class BotApplication {
                 config, bilibili, deepSeek, bot, dailyStats, notifyService, draftService);
         BotRunner runner = new BotRunner(config, service, recommendationService,
                 privateMessageService, notifyService, liveService, browseService);
-
-        Runtime.getRuntime().addShutdownHook(new Thread(runner::close, "bili-deepseek-shutdown"));
+        AdminServer adminServer = null;
+        if (config.admin().enabled()) {
+            try {
+                adminServer = new AdminServer(config, bot, draftService, browseService, dailyStats);
+                adminServer.start();
+            } catch (Exception e) {
+                log.error("[管理] Android 控制接口启动失败: {}", e.getMessage());
+            }
+        }
+        AdminServer admin = adminServer;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            runner.close();
+            if (admin != null) {
+                admin.close();
+            }
+        }, "bili-deepseek-shutdown"));
 
         log.info("机器人账号：{}（UID {}）", bot.uname().isBlank() ? "(未知昵称)" : bot.uname(), bot.mid());
         log.info("主人账号 UID：{}", config.bilibili().ownerUid());
