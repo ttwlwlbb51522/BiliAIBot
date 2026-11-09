@@ -23,12 +23,20 @@
         </encoder>
     </appender>
 
+    <!-- 控制台被选中/阻塞时，不拖住轮询、审核和 HTTP 管理接口。 -->
+    <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="CONSOLE"/>
+    </appender>
+
     <logger name="cn.citprobe.bilibot" level="${LOG_LEVEL}"/>
     <logger name="jdk.internal.httpclient" level="WARN"/>
     <logger name="sun.net.www" level="WARN"/>
 
     <root level="${LOG_LEVEL}">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
 </configuration>
