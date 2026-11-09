@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.19.1**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.19.2**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -282,7 +282,7 @@ java -jar target\bilibili-deepseek-bot.jar D:\path\to\application.properties
 
 ```
 机器人账号：DeepSeek小助手（UID 123456）
-主人账号 UID：987654321
+主人账号 UID：9244444321
 模型：deepseek-flash，轮询间隔：45s，状态文件：...\data\state.json
 当前为 DRY-RUN 模式：只生成回复并写入日志，不会真的发表评论。
 开始监听 @ 消息。按 Ctrl+C 退出。
@@ -830,7 +830,7 @@ D:\AndroidProject\BiliAIBot
 ```properties
 admin.enabled=true
 admin.bind=0.0.0.0
-admin.port=8765
+admin.port=24444
 admin.token=你的随机长令牌
 admin.log-file=logs/bot.log
 ```
@@ -838,16 +838,16 @@ admin.log-file=logs/bot.log
 重启后日志会出现：
 
 ```text
-[管理] Android 控制接口已启动: http://0.0.0.0:8765/api/status
+[管理] Android 控制接口已启动: http://0.0.0.0:24444/api/status
 ```
 
 App 连接地址使用电脑局域网 IP：
 
 ```text
-http://192.168.1.10:8765
+http://192.168.1.10:24444
 ```
 
-Android 模拟器使用 `http://10.0.2.2:8765`，真机必须用电脑实际 IP。
+Android 模拟器使用 `http://10.0.2.2:24444`，真机必须用电脑实际 IP。
 
 管理 API：
 
@@ -1057,7 +1057,7 @@ Cookie 或缓存会话已失效。程序会自动尝试账号密码登录；如�
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.19.1`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.19.2`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 
