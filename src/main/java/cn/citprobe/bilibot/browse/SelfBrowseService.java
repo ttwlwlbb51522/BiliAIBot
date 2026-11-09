@@ -49,7 +49,7 @@ public final class SelfBrowseService {
     private final ReplyFormatter formatter;
     private final Set<String> seen = new LinkedHashSet<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private int autoPage = 1;
+    private int nextSearchPage = 1;
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "bili-deepseek-browse");
         thread.setDaemon(true);
@@ -81,10 +81,11 @@ public final class SelfBrowseService {
             log.info("[刷视频] 已有任务在运行，忽略本次请求");
             return;
         }
-        log.info("[刷视频] 收到手动请求，关键词：{}", query);
+        int page = takePage();
+        log.info("[刷视频] 收到手动请求，关键词：{}，起始页={}", query, page);
         executor.submit(() -> {
             try {
-                browse(query, config.browse().maxVideos(), config.browse().maxResults(), 1, false);
+                browse(query, config.browse().maxVideos(), config.browse().maxResults(), page, false);
             } catch (Exception e) {
                 log.warn("[刷视频] 执行失败: {}", e.getMessage());
                 log.debug("刷视频异常详情", e);
@@ -103,8 +104,7 @@ public final class SelfBrowseService {
             log.debug("[刷视频] 上一轮尚未结束，跳过本轮自动任务");
             return;
         }
-        int page = autoPage;
-        autoPage = autoPage >= 50 ? 1 : autoPage + 1;
+        int page = takePage();
         executor.submit(() -> {
             try {
                 log.info("[刷视频] 自动任务开始，页码={}，关键词={}", page, query);
@@ -118,44 +118,70 @@ public final class SelfBrowseService {
         });
     }
 
-    private void browse(String keyword, int searchLimit, int maxResults, int page, boolean auto) {
-        List<SearchVideo> videos = bilibili.searchVideos(keyword, searchLimit, page);
-        if (videos.isEmpty()) {
-            log.info("[刷视频] 第 {} 页没有搜索到视频", page);
-            return;
-        }
+    private void browse(String keyword, int searchLimit, int maxResults, int startPage, boolean auto) {
+        int page = startPage;
         int shared = 0;
         int processed = 0;
-        for (SearchVideo video : videos) {
-            if (seen.contains(video.bvid())) {
+        int pagesTried = 0;
+        int searched = 0;
+        while (pagesTried < 5) {
+            pagesTried++;
+            List<SearchVideo> videos = bilibili.searchVideos(keyword, searchLimit, page);
+            searched += videos.size();
+            if (videos.isEmpty()) {
+                log.info("[刷视频] 第 {} 页没有搜索到视频", page);
+                page = nextPage();
                 continue;
             }
-            if (auto && processed >= 1) {
+            int before = processed;
+            for (SearchVideo video : videos) {
+                if (seen.contains(video.bvid())) {
+                    continue;
+                }
+                if (auto && processed >= 1) {
+                    break;
+                }
+                processed++;
+                seen.add(video.bvid());
+                log.info("[刷视频] 查看：{}（{}）", video.title(), video.bvid());
+                String summary;
+                try {
+                    VideoInsight insight = videoInsight.analyze(video.bvid());
+                    summary = insight.summary();
+                } catch (RuntimeException e) {
+                    log.warn("[刷视频] 内容读取失败 {}: {}", video.bvid(), e.getMessage());
+                    summary = "标题：" + video.title() + "\nUP：" + video.author()
+                            + "\n简介：" + video.description();
+                }
+                ScoreResult result = score(video, summary);
+                log.info("[刷视频] 评分={} 理由={}", result.score(), result.reason());
+                if (result.score() < config.browse().minScore() || shared >= maxResults) {
+                    continue;
+                }
+                share(video, result, summary);
+                shared++;
+            }
+            if (processed > before) {
+                // 本轮已经找到新视频；下次从下一页继续，避免一直卡在第一页。
+                page = nextPage();
                 break;
             }
-            processed++;
-            seen.add(video.bvid());
-            log.info("[刷视频] 查看：{}（{}）", video.title(), video.bvid());
-            String summary;
-            try {
-                VideoInsight insight = videoInsight.analyze(video.bvid());
-                summary = insight.summary();
-            } catch (RuntimeException e) {
-                log.warn("[刷视频] 内容读取失败 {}: {}", video.bvid(), e.getMessage());
-                summary = "标题：" + video.title() + "\nUP：" + video.author()
-                        + "\n简介：" + video.description();
-            }
-            ScoreResult result = score(video, summary);
-            log.info("[刷视频] 评分={} 理由={}", result.score(), result.reason());
-            if (result.score() < config.browse().minScore() || shared >= maxResults) {
-                continue;
-            }
-            share(video, result, summary);
-            shared++;
+            log.info("[刷视频] 第 {} 页没有新视频，继续下一页", page);
+            page = nextPage();
         }
         saveSeen();
-        log.info("[刷视频] 本轮完成：页码={} 搜索 {} 条，实际查看 {} 条，分享 {} 条",
-                page, videos.size(), processed, shared);
+        log.info("[刷视频] 本轮完成：起始页={} 尝试 {} 页，搜索 {} 条，实际查看 {} 条，分享 {} 条",
+                startPage, pagesTried, searched, processed, shared);
+    }
+
+    private synchronized int takePage() {
+        int page = nextSearchPage;
+        nextSearchPage = nextSearchPage >= 50 ? 1 : nextSearchPage + 1;
+        return page;
+    }
+
+    private synchronized int nextPage() {
+        return takePage();
     }
 
     private ScoreResult score(SearchVideo video, String summary) {
