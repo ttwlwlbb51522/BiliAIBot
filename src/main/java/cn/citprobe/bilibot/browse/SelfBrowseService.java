@@ -8,6 +8,7 @@ import cn.citprobe.bilibot.deepseek.DeepSeekClient;
 import cn.citprobe.bilibot.draft.DraftService;
 import cn.citprobe.bilibot.notify.DailyStats;
 import cn.citprobe.bilibot.notify.NotifyService;
+import cn.citprobe.bilibot.service.PersonaSource;
 import cn.citprobe.bilibot.service.ReplyFormatter;
 import cn.citprobe.bilibot.util.Json;
 import cn.citprobe.bilibot.video.VideoInsight;
@@ -46,6 +47,7 @@ public final class SelfBrowseService {
     private final NotifyService notify;
     private final DraftService drafts;
     private final VideoInsightService videoInsight;
+    private final PersonaSource persona;
     private final ReplyFormatter formatter;
     private final Set<String> seen = new LinkedHashSet<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -67,6 +69,7 @@ public final class SelfBrowseService {
         this.notify = notify;
         this.drafts = drafts;
         this.videoInsight = new VideoInsightService(bilibili, config.video());
+        this.persona = new PersonaSource(config.reply().systemPromptFile());
         this.formatter = new ReplyFormatter(new AppConfig.Reply(
                 300, false, "", "本鱼觉得这个挺有意思", config.reply().systemPromptFile(), 2000,
                 "direct", 0
@@ -186,11 +189,16 @@ public final class SelfBrowseService {
     }
 
     private ScoreResult score(SearchVideo video, String summary) {
-        String system = """
-                你是 B 站视频推荐助手。判断这个视频是否值得分享给主人，并给出一条符合“蓝色大肥鱼”人设的短评论。
+        String system = persona.get() + """
+
+                你现在是“蓝色大肥鱼”，正在按自己的喜好刷 B 站视频，不是通用推荐助手。
+                请完全按本鱼的性格、兴趣和说话方式判断：
+                - 这个视频本鱼会不会觉得有意思、想分享给主人或想吐槽？
+                - 是否符合本鱼的兴趣和价值观，而不是只看播放量或标题？
+                - 低质广告、标题党、搬运、争议或让本鱼不舒服的内容要低分。
                 只输出 JSON 对象，不要 Markdown：
-                {"score":85,"reason":"不超过40字的理由","comment":"不超过120字的评论"}
-                score 0-100；评论要像本鱼说话，不要 @ 主人，不要编造内容。
+                {"score":85,"reason":"不超过40字的理由，用本鱼视角","comment":"不超过120字的评论，本鱼口吻"}
+                score 0-100；评论不要 @ 主人，不要编造视频里没有的内容。
                 """;
         String user = """
                 视频标题：%s
