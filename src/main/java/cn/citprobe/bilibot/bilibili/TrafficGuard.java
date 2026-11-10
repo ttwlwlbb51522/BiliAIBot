@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -139,7 +141,10 @@ public final class TrafficGuard {
             state.readHour = 0;
             state.writeHour = 0;
         }
-        if (now - state.dayStart >= 86_400_000L) {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate today = LocalDate.now(zone);
+        LocalDate stateDay = Instant.ofEpochMilli(state.dayStart).atZone(zone).toLocalDate();
+        if (!stateDay.equals(today)) {
             state.dayStart = now;
             state.readDay = 0;
             state.writeDay = 0;
