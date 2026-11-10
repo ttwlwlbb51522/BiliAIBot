@@ -1078,3 +1078,7 @@ Cookie 或缓存会话已失效。程序会自动尝试账号密码登录；如�
 
 完整规范见 [VERSIONING.md](VERSIONING.md)，变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 - [Geetest 手动验证器](https://kuresaru.github.io/geetest-validator/)：密码登录时辅助完成极验验证（只输入 gt/challenge，不要输入账号密码）。
+
+## 许可证
+
+本项目采用 MIT License，版权所有 (c) 2026 ChaosException。详见 [LICENSE](LICENSE)。
