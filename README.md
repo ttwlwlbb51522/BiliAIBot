@@ -544,59 +544,59 @@ sudo systemctl status bilibili-bot
 
 ### B 站
 
-| 配置                                 | 默认值     | 说明                                         |
-|------------------------------------|---------|--------------------------------------------|
-| `bilibili.login-type`              | `auto`  | `auto` / `qrcode` / `password` / `cookie`  |
-| `bilibili.username`                | 空       | 机器人账号（手机号/邮箱），与密码同时填写                      |
-| `bilibili.password`                | 空       | 机器人账号密码（明文，注意保护）                           |
-| `bilibili.cookie`                  | 空       | 备用登录方式，完整 Cookie，必须含 `SESSDATA`、`bili_jct` |
-| `bilibili.owner-uid`               | `0`     | 主人 UID；默认只有这个 UID 能触发                      |
-| `bilibili.require-bot-mention`     | `true`  | @ 通知是否额外校验确实 @ 了机器人；回复续聊不受此限制              |
-| `bilibili.reply-feed-enabled`      | `true`  | 是否监听“回复我的”，主人回复机器人评论时继续对话                  |
-| `bilibili.allow-other-users`       | `false` | 是否允许主人以外的人 @ 机器人对话；网友不会被称呼为“主人”            |
-| `bilibili.private-message-enabled` | `false` | 是否开启私聊自动回复，任何人都可以私聊机器人                     |
-| `bilibili.private-message-poll-seconds` | `60` | 私聊轮询间隔，最小 10 秒                       |
-| `bilibili.private-message-history-size` | `8` | 每次读取多少条私聊作为上下文                         |
-| `bilibili.private-message-max-attempts` | `3` | 发送失败最多重试次数                            |
-| `bilibili.private-message-max-backoff-seconds` | `900` | 空闲/失败退避上限（秒）                    |
-| `bilibili.process-existing`        | `false` | 首次启动是否处理已存在的 @/回复                          |
-| `bilibili.first-run-grace-seconds` | `120`   | 首次启动时，最近多少秒内的 @/回复 仍视为新消息                  |
-| `bilibili.max-mention-age-minutes` | `120`   | 超过此时间的 @/回复 不再回复                           |
-| `bilibili.poll-interval-seconds`   | `45`    | 轮询间隔，最小 10 秒                               |
-| `bilibili.request-timeout-seconds` | `20`    | B 站请求超时                                    |
-| `bilibili.thread-context-size`     | `12`    | 读取多少条同串回复作为上下文，0 关闭                        |
-| `bilibili.max-attempts`            | `3`     | 可重试错误最多跨轮询尝试次数                             |
-| `bilibili.trigger-aliases`         | 空       | 额外触发别名，逗号分隔                                |
-| `bilibili.dry-run`                 | `true`  | 只写日志，不实际发评论                                |
-| `bilibili.at-feed-url`             | 官方      | @ 消息接口，一般不改                                |
-| `bilibili.reply-feed-url`          | 官方      | “回复我的”消息接口，一般不改                            |
+| 配置                                             | 默认值     | 说明                                         |
+|------------------------------------------------|---------|--------------------------------------------|
+| `bilibili.login-type`                          | `auto`  | `auto` / `qrcode` / `password` / `cookie`  |
+| `bilibili.username`                            | 空       | 机器人账号（手机号/邮箱），与密码同时填写                      |
+| `bilibili.password`                            | 空       | 机器人账号密码（明文，注意保护）                           |
+| `bilibili.cookie`                              | 空       | 备用登录方式，完整 Cookie，必须含 `SESSDATA`、`bili_jct` |
+| `bilibili.owner-uid`                           | `0`     | 主人 UID；默认只有这个 UID 能触发                      |
+| `bilibili.require-bot-mention`                 | `true`  | @ 通知是否额外校验确实 @ 了机器人；回复续聊不受此限制              |
+| `bilibili.reply-feed-enabled`                  | `true`  | 是否监听“回复我的”，主人回复机器人评论时继续对话                  |
+| `bilibili.allow-other-users`                   | `false` | 是否允许主人以外的人 @ 机器人对话；网友不会被称呼为“主人”            |
+| `bilibili.private-message-enabled`             | `false` | 是否开启私聊自动回复，任何人都可以私聊机器人                     |
+| `bilibili.private-message-poll-seconds`        | `60`    | 私聊轮询间隔，最小 10 秒                             |
+| `bilibili.private-message-history-size`        | `8`     | 每次读取多少条私聊作为上下文                             |
+| `bilibili.private-message-max-attempts`        | `3`     | 发送失败最多重试次数                                 |
+| `bilibili.private-message-max-backoff-seconds` | `900`   | 空闲/失败退避上限（秒）                               |
+| `bilibili.process-existing`                    | `false` | 首次启动是否处理已存在的 @/回复                          |
+| `bilibili.first-run-grace-seconds`             | `120`   | 首次启动时，最近多少秒内的 @/回复 仍视为新消息                  |
+| `bilibili.max-mention-age-minutes`             | `120`   | 超过此时间的 @/回复 不再回复                           |
+| `bilibili.poll-interval-seconds`               | `45`    | 轮询间隔，最小 10 秒                               |
+| `bilibili.request-timeout-seconds`             | `20`    | B 站请求超时                                    |
+| `bilibili.thread-context-size`                 | `12`    | 读取多少条同串回复作为上下文，0 关闭                        |
+| `bilibili.max-attempts`                        | `3`     | 可重试错误最多跨轮询尝试次数                             |
+| `bilibili.trigger-aliases`                     | 空       | 额外触发别名，逗号分隔                                |
+| `bilibili.dry-run`                             | `true`  | 只写日志，不实际发评论                                |
+| `bilibili.at-feed-url`                         | 官方      | @ 消息接口，一般不改                                |
+| `bilibili.reply-feed-url`                      | 官方      | “回复我的”消息接口，一般不改                            |
 
 > `bilibili.allow-other-users` 默认关闭，避免陌生人刷屏和消耗 DeepSeek 额度。开启后其他用户 @ 机器人也会触发回复，但提示词会明确称其为“网友”，不会叫“主人”。建议先用 `bilibili.dry-run=true` 观察日志。
 
 ### DeepSeek
 
-| 配置                         | 默认值                        | 说明                             |
-|----------------------------|----------------------------|--------------------------------|
-| `deepseek.api-key`         | 空                          | API Key                        |
-| `deepseek.base-url`        | `https://api.deepseek.com` | 可改为兼容代理地址                      |
+| 配置                         | 默认值                        | 说明                                   |
+|----------------------------|----------------------------|--------------------------------------|
+| `deepseek.api-key`         | 空                          | API Key                              |
+| `deepseek.base-url`        | `https://api.deepseek.com` | 可改为兼容代理地址                            |
 | `deepseek.model`           | `deepseek-flash`           | 当前 V4.1 Flash；旧的 `deepseek-chat` 已弃用 |
-| `deepseek.temperature`     | `0.8`                      | 0 ~ 2                          |
-| `deepseek.max-tokens`      | `800`                      | 回复 token 上限                    |
-| `deepseek.timeout-seconds` | `90`                       | 请求超时                           |
-| `deepseek.max-retries`     | `2`                        | 单次生成内部重试次数                     |
+| `deepseek.temperature`     | `0.8`                      | 0 ~ 2                                |
+| `deepseek.max-tokens`      | `800`                      | 回复 token 上限                          |
+| `deepseek.timeout-seconds` | `90`                       | 请求超时                                 |
+| `deepseek.max-retries`     | `2`                        | 单次生成内部重试次数                           |
 
 ### 回复
 
-| 配置                         | 默认值            | 说明                           |
-|----------------------------|----------------|------------------------------|
-| `reply.max-length`         | `900`          | 最终评论最大字符数，B 站上限 1000         |
-| `reply.mention-owner`      | `false`        | 回复开头是否 @ 主人；默认不 @，二级评论仍会通知对方 |
-| `reply.prefix`             | 空              | 固定前缀，例如 `【AI】`               |
-| `reply.fallback-text`      | `嗯嗯，我在听，你继续说～` | 模型返回空内容时的兜底回复                |
-| `reply.system-prompt-file` | `persona.txt`  | 人设文件，自动生成在配置文件/jar 同级，支持热更新  |
-| `reply.max-context-chars`  | `3000`         | 评论串上下文最大字符数                  |
-| `reply.other-users-mode`   | `draft`        | 其他人回复：draft 草稿待审 / direct 直接发送 |
-| `reply.same-person-cooldown-days` | `30`    | 同一网友多少天内最多回复一次，0 关闭            |
+| 配置                                | 默认值            | 说明                             |
+|-----------------------------------|----------------|--------------------------------|
+| `reply.max-length`                | `900`          | 最终评论最大字符数，B 站上限 1000           |
+| `reply.mention-owner`             | `false`        | 回复开头是否 @ 主人；默认不 @，二级评论仍会通知对方   |
+| `reply.prefix`                    | 空              | 固定前缀，例如 `【AI】`                 |
+| `reply.fallback-text`             | `嗯嗯，我在听，你继续说～` | 模型返回空内容时的兜底回复                  |
+| `reply.system-prompt-file`        | `persona.txt`  | 人设文件，自动生成在配置文件/jar 同级，支持热更新    |
+| `reply.max-context-chars`         | `3000`         | 评论串上下文最大字符数                    |
+| `reply.other-users-mode`          | `draft`        | 其他人回复：draft 草稿待审 / direct 直接发送 |
+| `reply.same-person-cooldown-days` | `30`           | 同一网友多少天内最多回复一次，0 关闭            |
 
 ### 运行
 
@@ -666,26 +666,26 @@ browse.auto-interval-minutes=30
 
 ### 直播弹幕
 
-| 配置                 | 默认值   | 说明                         |
-|--------------------|-------|----------------------------|
-| `live.enabled`     | `false` | 是否轮询直播间弹幕并回复                |
-| `live.room-id`     | `0`   | 直播间房间号                      |
-| `live.poll-seconds` | `30`  | 弹幕轮询间隔，最小 10 秒              |
-| `live.only-owner`  | `true` | 是否只回复主人的弹幕；false 回复所有人      |
+| 配置                  | 默认值     | 说明                     |
+|---------------------|---------|------------------------|
+| `live.enabled`      | `false` | 是否轮询直播间弹幕并回复           |
+| `live.room-id`      | `0`     | 直播间房间号                 |
+| `live.poll-seconds` | `30`    | 弹幕轮询间隔，最小 10 秒         |
+| `live.only-owner`   | `true`  | 是否只回复主人的弹幕；false 回复所有人 |
 
 > 当前使用直播历史弹幕轮询，不是 WebSocket 实时流。
 
 ### 视频画面分析
 
-| 配置                      | 默认值      | 说明                                      |
-|-------------------------|----------|-----------------------------------------|
-| `video.frames-enabled`  | `false`  | 是否启用 ffmpeg 抽帧 + 视觉模型                   |
-| `video.ffmpeg-path`     | `ffmpeg` | ffmpeg 可执行文件路径                          |
-| `video.frame-count`     | `6`      | 抽取多少帧                                   |
-| `video.max-seconds`     | `30`     | 最多截取视频前多少秒                              |
-| `video.vision-base-url` | 空        | OpenAI 兼容视觉接口地址                         |
-| `video.vision-api-key`  | 空        | 视觉接口 Key                                 |
-| `video.vision-model`    | 空        | 视觉模型名称，例如 `deepseek-flash`             |
+| 配置                      | 默认值      | 说明                         |
+|-------------------------|----------|----------------------------|
+| `video.frames-enabled`  | `false`  | 是否启用 ffmpeg 抽帧 + 视觉模型      |
+| `video.ffmpeg-path`     | `ffmpeg` | ffmpeg 可执行文件路径             |
+| `video.frame-count`     | `6`      | 抽取多少帧                      |
+| `video.max-seconds`     | `30`     | 最多截取视频前多少秒                 |
+| `video.vision-base-url` | 空        | OpenAI 兼容视觉接口地址            |
+| `video.vision-api-key`  | 空        | 视觉接口 Key                   |
+| `video.vision-model`    | 空        | 视觉模型名称，例如 `deepseek-flash` |
 
 使用 DeepSeek 官方视觉接口时可以直接配置：
 
@@ -700,29 +700,29 @@ video.vision-model=deepseek-flash
 
 ### 通知与日报
 
-| 配置                          | 默认值                    | 说明                              |
-|-----------------------------|------------------------|---------------------------------|
-| `notify.type`               | `none`                 | none / stdout / file / webhook / command |
-| `notify.file`               | `data/notifications.log` | 文件通知路径                        |
-| `notify.webhook-url`        | 空                      | Webhook 地址，POST `{"text":"..."}` |
-| `notify.command`            | 空                      | 外部命令，通知文本写入 stdin               |
-| `notify.daily-summary-enabled` | `true`              | 是否发送每日摘要                        |
-| `notify.daily-summary-hour` | `23`                   | 每天几点后发送摘要                       |
+| 配置                             | 默认值                      | 说明                                       |
+|--------------------------------|--------------------------|------------------------------------------|
+| `notify.type`                  | `none`                   | none / stdout / file / webhook / command |
+| `notify.file`                  | `data/notifications.log` | 文件通知路径                                   |
+| `notify.webhook-url`           | 空                        | Webhook 地址，POST `{"text":"..."}`         |
+| `notify.command`               | 空                        | 外部命令，通知文本写入 stdin                        |
+| `notify.daily-summary-enabled` | `true`                   | 是否发送每日摘要                                 |
+| `notify.daily-summary-hour`    | `23`                     | 每天几点后发送摘要                                |
 
 ### 收藏夹推荐
 
-| 配置                           | 默认值                        | 说明                              |
-|------------------------------|----------------------------|---------------------------------|
-| `recommend.enabled`          | `false`                    | 是否开启公开收藏夹推荐                     |
-| `recommend.interval-minutes` | `720`                      | 两次扫描间隔，默认 12 小时                 |
-| `recommend.max-folders`      | `5`                        | 最多扫描几个公开收藏夹                     |
-| `recommend.samples-per-folder` | `5`                      | 每个收藏夹取几个视频作为偏好样本                |
-| `recommend.related-limit`    | `10`                       | 每个样本取多少条相关推荐                    |
-| `recommend.max-results`      | `3`                        | 每次最多保留几条推荐                      |
-| `recommend.min-score`        | `70`                       | AI 评分门槛，0-100                   |
-| `recommend.favorite-folders` | 空                          | 指定收藏夹 media_id，逗号分隔；空表示自动选择公开收藏夹 |
-| `recommend.output-file`      | `data/recommendations.json` | 推荐结果 JSON 文件，不会自动私聊              |
-| `recommend.video-insight-enabled` | `false`               | 是否对最终推荐视频读取字幕/弹幕/热评并写摘要          |
+| 配置                                | 默认值                         | 说明                               |
+|-----------------------------------|-----------------------------|----------------------------------|
+| `recommend.enabled`               | `false`                     | 是否开启公开收藏夹推荐                      |
+| `recommend.interval-minutes`      | `720`                       | 两次扫描间隔，默认 12 小时                  |
+| `recommend.max-folders`           | `5`                         | 最多扫描几个公开收藏夹                      |
+| `recommend.samples-per-folder`    | `5`                         | 每个收藏夹取几个视频作为偏好样本                 |
+| `recommend.related-limit`         | `10`                        | 每个样本取多少条相关推荐                     |
+| `recommend.max-results`           | `3`                         | 每次最多保留几条推荐                       |
+| `recommend.min-score`             | `70`                        | AI 评分门槛，0-100                    |
+| `recommend.favorite-folders`      | 空                           | 指定收藏夹 media_id，逗号分隔；空表示自动选择公开收藏夹 |
+| `recommend.output-file`           | `data/recommendations.json` | 推荐结果 JSON 文件，不会自动私聊              |
+| `recommend.video-insight-enabled` | `false`                     | 是否对最终推荐视频读取字幕/弹幕/热评并写摘要          |
 
 > 仅公开收藏夹可读。推荐结果只写日志和 JSON，不会发送 B 站私聊。
 
@@ -852,19 +852,19 @@ Android 模拟器使用 `http://10.0.2.2:24444`，真机必须用电脑实际 IP
 
 管理 API：
 
-| 方法 | 路径 | 作用 |
-|---|---|---|
-| `GET` | `/api/status` | 机器人状态、版本、统计、dry-run |
-| `GET` | `/api/drafts` | 待审草稿列表 |
-| `POST` | `/api/drafts/{id}/approve` | 批准并发送 |
-| `POST` | `/api/drafts/{id}/drop` | 丢弃草稿 |
-| `GET` | `/api/logs?lines=200` | 最近日志 |
-| `GET` | `/api/config` | 安全配置摘要 |
-| `GET` | `/api/config/fields` | 配置项列表（键名、含义、当前值、分类） |
-| `POST` | `/api/config/set` | 修改单个配置项 |
-| `GET` | `/api/config/raw` | 读取完整配置文件（兼容接口） |
-| `POST` | `/api/config/raw` | 校验并保存完整配置文件（兼容接口） |
-| `POST` | `/api/browse?keyword=...` | 手动刷视频 |
+| 方法     | 路径                         | 作用                  |
+|--------|----------------------------|---------------------|
+| `GET`  | `/api/status`              | 机器人状态、版本、统计、dry-run |
+| `GET`  | `/api/drafts`              | 待审草稿列表              |
+| `POST` | `/api/drafts/{id}/approve` | 批准并发送               |
+| `POST` | `/api/drafts/{id}/drop`    | 丢弃草稿                |
+| `GET`  | `/api/logs?lines=200`      | 最近日志                |
+| `GET`  | `/api/config`              | 安全配置摘要              |
+| `GET`  | `/api/config/fields`       | 配置项列表（键名、含义、当前值、分类） |
+| `POST` | `/api/config/set`          | 修改单个配置项             |
+| `GET`  | `/api/config/raw`          | 读取完整配置文件（兼容接口）      |
+| `POST` | `/api/config/raw`          | 校验并保存完整配置文件（兼容接口）   |
+| `POST` | `/api/browse?keyword=...`  | 手动刷视频               |
 
 请求头需要带：
 
