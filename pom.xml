@@ -6,7 +6,7 @@
 
     <groupId>cn.citprobe.bilibot</groupId>
     <artifactId>bilibili-deepseek-bot</artifactId>
-    <version>1.21.0</version>
+    <version>1.22.0</version>
     <name>bilibili-deepseek-bot</name>
     <description>在 B 站评论区通过 @ 触发 DeepSeek AI 回复的机器人</description>
 

@@ -3,6 +3,7 @@ package cn.citprobe.bilibot;
 import cn.citprobe.bilibot.bilibili.BilibiliApiException;
 import cn.citprobe.bilibot.browse.SelfBrowseService;
 import cn.citprobe.bilibot.config.AppConfig;
+import cn.citprobe.bilibot.config.ConfigLoader;
 import cn.citprobe.bilibot.live.LiveDanmakuService;
 import cn.citprobe.bilibot.notify.NotifyService;
 import cn.citprobe.bilibot.pm.PrivateMessageService;
@@ -11,8 +12,10 @@ import cn.citprobe.bilibot.service.BotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,7 +27,9 @@ public final class BotRunner {
 
     private static final Logger log = LoggerFactory.getLogger(BotRunner.class);
 
-    private final AppConfig config;
+    private volatile AppConfig config;
+    private volatile Path configPath;
+    private volatile ScheduledFuture<?> browseFuture;
     private final BotService service;
     private final RecommendationService recommendationService;
     private final PrivateMessageService privateMessageService;
@@ -145,17 +150,47 @@ public final class BotRunner {
                     TimeUnit.SECONDS
             );
         }
-        if (browseService != null && config.browse().autoEnabled()) {
-            log.info("[刷视频] 自动任务已启用：每 {} 分钟一条", config.browse().autoIntervalMinutes());
-            browseScheduler.scheduleWithFixedDelay(
-                    this::browseSafely,
-                    1,
-                    config.browse().autoIntervalMinutes(),
-                    TimeUnit.MINUTES
-            );
-        } else if (browseService != null) {
-            log.info("[刷视频] 自动任务未启用（browse.auto-enabled=false）");
+        scheduleBrowse();
+    }
+
+    public void setConfigPath(Path path) {
+        this.configPath = path;
+    }
+
+    public synchronized AppConfig reloadConfig() {
+        if (configPath == null) {
+            throw new IllegalStateException("未设置配置文件路径，无法 reload");
         }
+        AppConfig reloaded = ConfigLoader.loadResolved(configPath);
+        this.config = reloaded;
+        if (browseService != null) {
+            browseService.reload(reloaded);
+        }
+        scheduleBrowse();
+        log.info("[重载] 配置已重新加载: {}，刷视频设置已即时生效；其余配置重启后完全生效",
+                configPath);
+        return reloaded;
+    }
+
+    private void scheduleBrowse() {
+        if (browseFuture != null) {
+            browseFuture.cancel(false);
+            browseFuture = null;
+        }
+        if (browseService == null) {
+            return;
+        }
+        if (!config.browse().autoEnabled()) {
+            log.info("[刷视频] 自动任务未启用（browse.auto-enabled=false）");
+            return;
+        }
+        log.info("[刷视频] 自动任务已启用：每 {} 分钟一条", config.browse().autoIntervalMinutes());
+        browseFuture = browseScheduler.scheduleWithFixedDelay(
+                this::browseSafely,
+                1,
+                config.browse().autoIntervalMinutes(),
+                TimeUnit.MINUTES
+        );
     }
 
     public boolean isRunning() {
@@ -254,6 +289,9 @@ public final class BotRunner {
         privateMessageScheduler.shutdownNow();
         notifyScheduler.shutdownNow();
         liveScheduler.shutdownNow();
+        if (browseFuture != null) {
+            browseFuture.cancel(false);
+        }
         browseScheduler.shutdownNow();
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {

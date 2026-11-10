@@ -12,6 +12,7 @@ public enum ConsoleCommand {
     VERSION,
     DRAFTS,
     BROWSE,
+    RELOAD,
     UNKNOWN;
 
     public static ConsoleCommand parse(String input) {
@@ -30,6 +31,7 @@ public enum ConsoleCommand {
             case "help", "?" -> HELP;
             case "status" -> STATUS;
             case "version", "ver" -> VERSION;
+            case "reload", "reload-config" -> RELOAD;
             default -> UNKNOWN;
         };
     }

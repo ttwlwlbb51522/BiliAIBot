@@ -57,13 +57,17 @@ class ConfigFileManagerTest {
         assertTrue(result.filledKeys() >= 2);
 
         String content = Files.readString(file);
-        assertTrue(content.contains("# 用户自己的注释"));
         assertTrue(content.contains("bilibili.poll-interval-seconds=60"), "不能覆盖用户值");
         assertTrue(content.contains("bilibili.dry-run=true"), "空值应补默认值");
         String expectedFallback = ConfigFileManager.templateDefaults().getProperty("reply.fallback-text");
         assertTrue(content.contains("reply.fallback-text=" + expectedFallback));
         assertTrue(content.contains("deepseek.model=deepseek-flash"), "缺失键应补全");
-        assertTrue(content.contains("# ===== 以下配置项由程序自动补全"));
+        assertTrue(content.contains("# 自动刷视频：每 30 分钟检查并处理一条新视频。"),
+                "补全项应带模板注释");
+        assertTrue(content.indexOf("deepseek.model=deepseek-flash")
+                        < content.indexOf("browse.auto-interval-minutes=30"),
+                "补全项应按模板位置插入，而不是堆到文件末尾");
+        assertFalse(content.contains("以下配置项由程序自动补全"));
 
         Properties properties = new Properties();
         properties.load(Files.newBufferedReader(file));

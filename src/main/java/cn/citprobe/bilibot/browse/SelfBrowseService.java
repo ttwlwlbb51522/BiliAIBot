@@ -39,7 +39,7 @@ public final class SelfBrowseService {
     private static final Logger log = LoggerFactory.getLogger(SelfBrowseService.class);
     private static final ObjectMapper MAPPER = Json.STATE;
 
-    private final AppConfig config;
+    private volatile AppConfig config;
     private final BilibiliClient bilibili;
     private final DeepSeekClient deepSeek;
     private final BotIdentity bot;
@@ -96,6 +96,12 @@ public final class SelfBrowseService {
                 running.set(false);
             }
         });
+    }
+
+    public synchronized void reload(AppConfig newConfig) {
+        this.config = newConfig;
+        log.info("[刷视频] 配置已热加载：间隔={} 分钟，分享方式={}",
+                newConfig.browse().autoIntervalMinutes(), newConfig.browse().shareMode());
     }
 
     public void triggerAuto() {

@@ -98,6 +98,7 @@ public final class BotApplication {
                 config, bilibili, deepSeek, bot, dailyStats, notifyService, draftService);
         BotRunner runner = new BotRunner(config, service, recommendationService,
                 privateMessageService, notifyService, liveService, browseService);
+        runner.setConfigPath(configPath);
         AdminServer adminServer = null;
         if (config.admin().enabled()) {
             try {

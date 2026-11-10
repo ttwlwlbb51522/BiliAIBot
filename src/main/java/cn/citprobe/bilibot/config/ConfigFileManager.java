@@ -15,8 +15,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -82,6 +84,9 @@ final class ConfigFileManager {
                 if (!result.filledKeys().isEmpty()) {
                     log.info("修复空值配置项: {}", String.join(", ", result.filledKeys()));
                 }
+                if (result.addedKeys().isEmpty() && result.filledKeys().isEmpty()) {
+                    log.info("配置项顺序和注释已按内置模板重新对齐");
+                }
             }
             return new PrepareResult(false, result.addedKeys().size(), result.filledKeys().size());
         } catch (IOException e) {
@@ -111,7 +116,6 @@ final class ConfigFileManager {
     }
 
     private static BackfillResult backfill(String content, Properties defaults) {
-        List<String> lines = new ArrayList<>(content.lines().toList());
         Properties existing = new Properties();
         try (StringReader reader = new StringReader(content)) {
             existing.load(reader);
@@ -121,39 +125,55 @@ final class ConfigFileManager {
 
         List<String> added = new ArrayList<>();
         List<String> filled = new ArrayList<>();
-
         for (String key : templateKeys()) {
             String defaultValue = defaults.getProperty(key, "");
             String current = existing.getProperty(key);
             if (current == null) {
                 added.add(key);
+            } else if (current.isBlank() && !defaultValue.isBlank()) {
+                filled.add(key);
+            }
+        }
+
+        // 以模板为唯一结构来源：缺失项回到所属章节，并保留模板注释。
+        List<String> merged = new ArrayList<>();
+        Set<String> templateKeys = new LinkedHashSet<>(templateKeys());
+        for (String templateLine : templateText().split("\\R", -1)) {
+            String trimmed = templateLine.trim();
+            int separator = trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("!")
+                    ? -1 : indexOfSeparator(trimmed);
+            if (separator <= 0) {
+                merged.add(templateLine);
                 continue;
             }
-            if (current.isBlank() && !defaultValue.isBlank()) {
-                if (replaceValue(lines, key, defaultValue)) {
-                    filled.add(key);
-                } else {
-                    // 形如 "key" 没有分隔符的异常写法，直接在文件末尾补一条有效配置。
-                    added.add(key);
-                }
-            }
+            String key = trimmed.substring(0, separator).trim();
+            String defaultValue = defaults.getProperty(key, "");
+            String current = existing.getProperty(key);
+            String value = current == null || (current.isBlank() && !defaultValue.isBlank())
+                    ? defaultValue : current;
+            merged.add(key + "=" + escapeValue(value));
         }
 
-        if (!added.isEmpty()) {
-            if (!lines.isEmpty() && !lines.get(lines.size() - 1).isBlank()) {
-                lines.add("");
-            }
-            lines.add("# ===== 以下配置项由程序自动补全（可自行修改） =====");
-            for (String key : added) {
-                lines.add(key + "=" + escapeValue(defaults.getProperty(key, "")));
+        List<String> custom = new ArrayList<>();
+        for (String key : existing.stringPropertyNames()) {
+            if (!templateKeys.contains(key)) {
+                custom.add(key + "=" + escapeValue(existing.getProperty(key, "")));
             }
         }
+        if (!custom.isEmpty()) {
+            custom.sort(String::compareTo);
+            if (!merged.isEmpty() && !merged.get(merged.size() - 1).isBlank()) {
+                merged.add("");
+            }
+            merged.add("# ===== 用户自定义配置 =====");
+            merged.addAll(custom);
+        }
 
-        boolean changed = !added.isEmpty() || !filled.isEmpty();
-        String result = String.join("\n", lines);
+        String result = String.join("\n", merged);
         if (!result.endsWith("\n")) {
             result += "\n";
         }
+        boolean changed = !result.equals(content);
         return new BackfillResult(changed, result, List.copyOf(added), List.copyOf(filled));
     }
 

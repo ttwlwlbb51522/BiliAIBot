@@ -22,7 +22,8 @@ class ConsoleCommandTest {
         assertEquals(ConsoleCommand.DRAFTS, ConsoleCommand.parse("drafts list"));
         assertEquals(ConsoleCommand.BROWSE, ConsoleCommand.parse("browse"));
         assertEquals(ConsoleCommand.BROWSE, ConsoleCommand.parse("browse 猫咪"));
-        assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse("reload"));
+        assertEquals(ConsoleCommand.RELOAD, ConsoleCommand.parse("reload"));
+        assertEquals(ConsoleCommand.RELOAD, ConsoleCommand.parse("reload-config"));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse(""));
         assertEquals(ConsoleCommand.UNKNOWN, ConsoleCommand.parse(null));
     }

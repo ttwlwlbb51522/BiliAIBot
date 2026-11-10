@@ -64,6 +64,7 @@ public final class BotConsole {
                   drafts drop <id>     丢弃草稿
                   browse   手动搜索并刷“蓝色大肥鱼”相关视频
                   browse <关键词>  使用自定义关键词刷视频
+                  reload   重新加载配置文件（刷视频设置即时生效）
                   stop     安全停止机器人（也可用 shutdown/exit/quit）
                 """);
         System.out.flush();
@@ -102,6 +103,7 @@ public final class BotConsole {
             case VERSION -> printVersion();
             case DRAFTS -> handleDrafts(line);
             case BROWSE -> handleBrowse(line);
+            case RELOAD -> handleReload();
             case UNKNOWN -> {
                 if (line != null && !line.isBlank()) {
                     System.out.println("未知命令: " + line.trim() + "，输入 help 查看可用命令");
@@ -147,6 +149,16 @@ public final class BotConsole {
             System.out.println("操作未完成，检查 id 或查看日志");
             System.out.flush();
         }
+    }
+
+    private void handleReload() {
+        try {
+            runner.reloadConfig();
+            System.out.println("配置已重新加载；刷视频设置已即时生效，其余配置重启后完全生效");
+        } catch (RuntimeException e) {
+            System.out.println("配置重载失败：" + e.getMessage());
+        }
+        System.out.flush();
     }
 
     private void handleBrowse(String line) {

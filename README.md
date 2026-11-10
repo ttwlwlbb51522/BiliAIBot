@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.21.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.22.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -318,6 +318,7 @@ java -jar target\bilibili-deepseek-bot.jar D:\path\to\application.properties
   drafts drop <id>     丢弃草稿
   browse   手动搜索并刷“蓝色大肥鱼”相关视频
   browse <关键词>  使用自定义关键词刷视频
+  reload   重新加载配置文件（刷视频设置即时生效）
   stop     安全停止机器人（也可用 shutdown/exit/quit）
 ```
 
@@ -976,7 +977,7 @@ Cookie 或缓存会话已失效。程序会自动尝试账号密码登录；如�
 
 ### 配置项缺失或值为空
 
-程序启动时会自动补全：缺失键追加到文件末尾，空值用模板默认值修复，已有值不会覆盖。日志会明确列出补全了哪些键，并显示配置文件完整路径。
+程序启动时会按内置模板自动补全：缺失键回到所属章节并带原注释，空值用模板默认值修复，已有值不会覆盖；配置项顺序和注释会与初次生成的文件保持一致。日志会列出补全了哪些键，并显示配置文件完整路径。
 
 ### 日志出现 `HTTP 412` / 风控
 
@@ -1061,7 +1062,7 @@ Cookie 或缓存会话已失效。程序会自动尝试账号密码登录；如�
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.21.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.22.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 
