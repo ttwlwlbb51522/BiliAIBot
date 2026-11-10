@@ -845,7 +845,7 @@ admin.log-file=logs/bot.log
 App 连接地址使用电脑局域网 IP：
 
 ```text
-http://192.168.1.10:24444
+http://<电脑局域网IP>:24444
 ```
 
 Android 模拟器使用 `http://10.0.2.2:24444`，真机必须用电脑实际 IP。
