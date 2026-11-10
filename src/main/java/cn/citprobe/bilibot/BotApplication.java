@@ -48,7 +48,7 @@ public final class BotApplication {
         try {
             AppConfig config = ConfigLoader.loadResolved(configPath);
             PersonaFile.ensure(config.reply().systemPromptFile());
-            start(config);
+            start(config, configPath);
         } catch (ConfigException e) {
             log.error("启动失败：{}", e.getMessage());
             log.error("请检查 {} 或环境变量配置。", configPath.toAbsolutePath());
@@ -67,7 +67,7 @@ public final class BotApplication {
         }
     }
 
-    private static void start(AppConfig config) {
+    private static void start(AppConfig config, Path configPath) {
         BilibiliAuthService authService = new BilibiliAuthService(
                 config.bilibili(), config.app().sessionFile());
         String runtimeCookie = authService.authenticate();
@@ -101,7 +101,7 @@ public final class BotApplication {
         AdminServer adminServer = null;
         if (config.admin().enabled()) {
             try {
-                adminServer = new AdminServer(config, bot, draftService, browseService, dailyStats);
+                adminServer = new AdminServer(config, bot, draftService, browseService, dailyStats, configPath);
                 adminServer.start();
             } catch (Exception e) {
                 log.error("[管理] Android 控制接口启动失败: {}", e.getMessage());

@@ -165,9 +165,9 @@ browse.min-score=70
 browse.share-mode=dm
 browse.seen-file=data/browse-seen.json
 
-# 自动刷视频：每 5 分钟检查并处理一条新视频。
+# 自动刷视频：每 30 分钟检查并处理一条新视频。
 browse.auto-enabled=true
-browse.auto-interval-minutes=5
+browse.auto-interval-minutes=30
 
 
 # ---------- 直播弹幕 ----------

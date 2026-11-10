@@ -47,7 +47,8 @@ class AdminServerTest {
         }
         AppConfig config = ConfigLoader.load(configFile);
         DraftService drafts = new DraftService(config, null, null, null);
-        AdminServer server = new AdminServer(config, new BotIdentity(1, "机器人"), drafts, null, null);
+        AdminServer server = new AdminServer(config, new BotIdentity(1, "机器人"), drafts, null, null,
+                configFile);
         server.start();
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -74,6 +75,27 @@ class AdminServerTest {
                     HttpResponse.BodyHandlers.ofString());
             assertEquals(200, draftsResponse.statusCode());
             assertTrue(MAPPER.readTree(draftsResponse.body()).path("drafts").isArray());
+
+            HttpResponse<String> rawConfig = client.send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/config/raw"))
+                            .header("X-Admin-Token", "test-token")
+                            .GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, rawConfig.statusCode());
+            String content = MAPPER.readTree(rawConfig.body()).path("content").asText();
+            assertTrue(content.contains("admin.token=test-token"));
+
+            String updated = content + "\n# edited from android test\n";
+            HttpResponse<String> saved = client.send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/config/raw"))
+                            .header("X-Admin-Token", "test-token")
+                            .header("Content-Type", "text/plain; charset=utf-8")
+                            .POST(HttpRequest.BodyPublishers.ofString(updated))
+                            .build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, saved.statusCode());
+            assertTrue(MAPPER.readTree(saved.body()).path("ok").asBoolean());
+            assertTrue(Files.readString(configFile).contains("edited from android test"));
         } finally {
             server.close();
         }

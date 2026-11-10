@@ -64,7 +64,7 @@ public final class ConfigLoader {
         return parse(props, Paths.get("").toAbsolutePath());
     }
 
-    static AppConfig parse(Properties props, Path baseDir) {
+    public static AppConfig parse(Properties props, Path baseDir) {
         String cookie = sanitizeCookie(string(props, "bilibili.cookie", ""));
         String username = string(props, "bilibili.username", "");
         String password = rawString(props, "bilibili.password", "");
@@ -240,7 +240,7 @@ public final class ConfigLoader {
                         Paths.get(string(props, "browse.seen-file", "data/browse-seen.json"))
                                 .toAbsolutePath().normalize(),
                         bool(props, "browse.auto-enabled", true),
-                        intInRange(props, "browse.auto-interval-minutes", 5, 1, 1440)
+                        intInRange(props, "browse.auto-interval-minutes", 30, 1, 1440)
                 ),
                 new AppConfig.Admin(
                         bool(props, "admin.enabled", false),

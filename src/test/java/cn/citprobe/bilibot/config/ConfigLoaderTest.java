@@ -59,7 +59,7 @@ class ConfigLoaderTest {
         assertEquals("蓝色大肥鱼", config.browse().keyword());
         assertEquals("dm", config.browse().shareMode());
         assertTrue(config.browse().autoEnabled());
-        assertEquals(5, config.browse().autoIntervalMinutes());
+        assertEquals(30, config.browse().autoIntervalMinutes());
         assertEquals("嗯嗯，我在听，你继续说～", config.reply().fallbackText());
         assertTrue(config.app().stateFile().isAbsolute());
         assertTrue(config.app().sessionFile().isAbsolute());

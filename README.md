@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.19.2**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.20.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -648,9 +648,9 @@ browse.min-score=70
 browse.share-mode=dm
 browse.seen-file=data/browse-seen.json
 
-# 自动刷视频：每 5 分钟处理一条新视频
+# 自动刷视频：每 30 分钟处理一条新视频
 browse.auto-enabled=true
-browse.auto-interval-minutes=5
+browse.auto-interval-minutes=30
 ```
 
 自动任务：
@@ -859,6 +859,8 @@ Android 模拟器使用 `http://10.0.2.2:24444`，真机必须用电脑实际 IP
 | `POST` | `/api/drafts/{id}/drop` | 丢弃草稿 |
 | `GET` | `/api/logs?lines=200` | 最近日志 |
 | `GET` | `/api/config` | 安全配置摘要 |
+| `GET` | `/api/config/raw` | 读取完整配置文件 |
+| `POST` | `/api/config/raw` | 校验并保存完整配置文件 |
 | `POST` | `/api/browse?keyword=...` | 手动刷视频 |
 
 请求头需要带：
@@ -1057,7 +1059,7 @@ Cookie 或缓存会话已失效。程序会自动尝试账号密码登录；如�
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.19.2`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.20.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

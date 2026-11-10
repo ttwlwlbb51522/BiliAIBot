@@ -3,6 +3,8 @@ package cn.citprobe.bilibot.admin;
 import cn.citprobe.bilibot.bilibili.BotIdentity;
 import cn.citprobe.bilibot.browse.SelfBrowseService;
 import cn.citprobe.bilibot.config.AppConfig;
+import cn.citprobe.bilibot.config.ConfigException;
+import cn.citprobe.bilibot.config.ConfigLoader;
 import cn.citprobe.bilibot.draft.Draft;
 import cn.citprobe.bilibot.draft.DraftService;
 import cn.citprobe.bilibot.notify.DailyStats;
@@ -15,17 +17,23 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -44,12 +52,14 @@ public final class AdminServer implements AutoCloseable {
     private final DraftService drafts;
     private final SelfBrowseService browse;
     private final DailyStats stats;
+    private final Path configFile;
+    private final Object configLock = new Object();
     private final Instant startedAt = Instant.now();
     private final HttpServer server;
     private final ExecutorService executor;
 
     public AdminServer(AppConfig config, BotIdentity bot, DraftService drafts,
-                       SelfBrowseService browse, DailyStats stats) throws IOException {
+                       SelfBrowseService browse, DailyStats stats, Path configFile) throws IOException {
         if (config.admin().token() == null || config.admin().token().isBlank()) {
             throw new IllegalStateException("admin.enabled=true 时必须设置 admin.token");
         }
@@ -58,6 +68,7 @@ public final class AdminServer implements AutoCloseable {
         this.drafts = drafts;
         this.browse = browse;
         this.stats = stats;
+        this.configFile = configFile.toAbsolutePath().normalize();
         this.executor = Executors.newFixedThreadPool(4, runnable -> {
             Thread thread = new Thread(runnable, "bili-deepseek-admin");
             thread.setDaemon(true);
@@ -71,6 +82,7 @@ public final class AdminServer implements AutoCloseable {
         this.server.createContext("/api/logs", this::handleLogs);
         this.server.createContext("/api/browse", this::handleBrowse);
         this.server.createContext("/api/config", this::handleConfig);
+        this.server.createContext("/api/config/raw", this::handleRawConfig);
     }
 
     public void start() {
@@ -99,6 +111,7 @@ public final class AdminServer implements AutoCloseable {
         body.put("model", config.deepseek().model());
         body.put("draftCount", drafts.list().size());
         body.put("autoBrowse", config.browse().autoEnabled());
+        body.put("autoBrowseIntervalMinutes", config.browse().autoIntervalMinutes());
         body.put("browseShareMode", config.browse().shareMode());
         body.put("pollSeconds", config.bilibili().pollIntervalSeconds());
         body.put("stats", stats == null ? Map.of() : stats.snapshot());
@@ -224,6 +237,89 @@ public final class AdminServer implements AutoCloseable {
         body.put("browseAutoIntervalMinutes", config.browse().autoIntervalMinutes());
         body.put("notifyType", config.notification().type());
         sendJson(exchange, 200, body);
+    }
+
+    private void handleRawConfig(HttpExchange exchange) throws IOException {
+        if (!authorized(exchange)) {
+            return;
+        }
+        if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            if (!Files.isRegularFile(configFile)) {
+                sendError(exchange, 404, "配置文件不存在：" + configFile);
+                return;
+            }
+            String text = Files.readString(configFile, StandardCharsets.UTF_8);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("ok", true);
+            body.put("path", configFile.toString());
+            body.put("content", text);
+            sendJson(exchange, 200, body);
+            return;
+        }
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            sendError(exchange, 405, "只支持 GET 或 POST");
+            return;
+        }
+        byte[] raw = exchange.getRequestBody().readAllBytes();
+        if (raw.length > 2_000_000) {
+            sendError(exchange, 413, "配置文件过大");
+            return;
+        }
+        String text = new String(raw, StandardCharsets.UTF_8);
+        if (text.startsWith("\uFEFF")) {
+            text = text.substring(1);
+        }
+        if (text.isBlank()) {
+            sendError(exchange, 400, "配置内容不能为空");
+            return;
+        }
+        try {
+            Properties props = new Properties();
+            props.load(new StringReader(text));
+            ConfigLoader.parse(props, configFile.getParent());
+        } catch (ConfigException e) {
+            sendError(exchange, 400, "配置校验失败：" + e.getMessage());
+            return;
+        } catch (Exception e) {
+            sendError(exchange, 400, "配置格式错误：" + e.getMessage());
+            return;
+        }
+        synchronized (configLock) {
+            Path backup = configFile.resolveSibling(configFile.getFileName() + ".bak");
+            Path temp = configFile.resolveSibling(configFile.getFileName() + ".tmp");
+            try {
+                if (Files.isRegularFile(configFile)) {
+                    Files.copy(configFile, backup, StandardCopyOption.REPLACE_EXISTING);
+                }
+                Files.writeString(temp, text, StandardCharsets.UTF_8);
+                try {
+                    Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(configFile);
+                    Files.setPosixFilePermissions(temp, permissions);
+                } catch (Exception ignored) {
+                    // Windows 或不支持 POSIX 权限的文件系统。
+                }
+                try {
+                    Files.move(temp, configFile, StandardCopyOption.REPLACE_EXISTING,
+                            StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException e) {
+                    Files.move(temp, configFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+                log.info("[管理] 配置文件已通过 Android 更新: {}", configFile);
+                sendJson(exchange, 200, Map.of(
+                        "ok", true,
+                        "message", "配置已保存，重启电脑端机器人后生效",
+                        "backup", backup.toString()
+                ));
+            } catch (IOException e) {
+                log.warn("[管理] 写入配置文件失败: {}", e.getMessage());
+                sendError(exchange, 500, "写入失败：" + e.getMessage());
+            } finally {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException ignored) {
+                }
+            }
+        }
     }
 
     private boolean authorized(HttpExchange exchange) throws IOException {

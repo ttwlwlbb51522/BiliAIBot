@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-11-10
+
+### 新增
+
+- Android App 新增“编辑配置文件”，可远程读取、修改并保存电脑端 `application.properties`。
+- 保存前会校验配置，保存时自动备份为 `application.properties.bak`，重启机器人后生效。
+- Android 管理 API 新增 `GET/POST /api/config/raw`。
+
+### 变更
+
+- 自动刷视频默认间隔从 5 分钟改为 30 分钟。
+
 ## [1.19.2] - 2026-11-09
 
 ### 变更
