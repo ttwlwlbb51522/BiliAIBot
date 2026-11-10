@@ -9,13 +9,17 @@ import cn.citprobe.bilibot.draft.Draft;
 import cn.citprobe.bilibot.draft.DraftService;
 import cn.citprobe.bilibot.notify.DailyStats;
 import cn.citprobe.bilibot.util.Json;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.InetSocketAddress;
@@ -30,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -46,6 +51,48 @@ public final class AdminServer implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AdminServer.class);
     private static final ObjectMapper MAPPER = Json.STATE;
     private static final int MAX_LOG_LINES = 500;
+
+    private static final Map<String, String> FIELD_DESCRIPTIONS = Map.ofEntries(
+            Map.entry("bilibili.private-message-history-size", "每轮读取的私信历史条数"),
+            Map.entry("bilibili.private-message-max-backoff-seconds", "私信失败退避上限（秒）"),
+            Map.entry("deepseek.base-url", "DeepSeek API 地址"),
+            Map.entry("deepseek.model", "DeepSeek 模型名称，例如 deepseek-flash"),
+            Map.entry("deepseek.temperature", "回复随机性，越高越发散"),
+            Map.entry("deepseek.max-tokens", "单次回复最大 token 数"),
+            Map.entry("deepseek.timeout-seconds", "DeepSeek 请求超时（秒）"),
+            Map.entry("deepseek.max-retries", "DeepSeek 失败重试次数"),
+            Map.entry("live.room-id", "直播间房间号，0 表示未启用"),
+            Map.entry("live.poll-seconds", "直播弹幕轮询间隔（秒）"),
+            Map.entry("live.only-owner", "是否只回复主人弹幕"),
+            Map.entry("video.ffmpeg-path", "ffmpeg 可执行文件路径"),
+            Map.entry("video.frame-count", "每次抽取的帧数"),
+            Map.entry("video.max-seconds", "最多分析视频前多少秒"),
+            Map.entry("video.vision-base-url", "视觉接口地址"),
+            Map.entry("video.vision-api-key", "视觉接口 Key"),
+            Map.entry("video.vision-model", "视觉模型名称"),
+            Map.entry("notify.file", "通知日志文件路径"),
+            Map.entry("notify.webhook-url", "Webhook 地址"),
+            Map.entry("notify.command", "通知命令"),
+            Map.entry("notify.daily-summary-hour", "每日摘要发送小时（0-23）"),
+            Map.entry("risk.min-gap-ms", "两次请求之间的最小间隔（毫秒）"),
+            Map.entry("risk.read-hourly", "每小时读请求上限"),
+            Map.entry("risk.read-daily", "每天读请求上限"),
+            Map.entry("risk.write-hourly", "每小时写请求上限"),
+            Map.entry("risk.write-daily", "每天写请求上限"),
+            Map.entry("risk.write-gap-seconds", "两次写操作冷却（秒）"),
+            Map.entry("risk.dedup-hours", "重复内容去重时间（小时）"),
+            Map.entry("risk.state-file", "请求保护状态文件"),
+            Map.entry("recommend.min-score", "推荐视频最低评分"),
+            Map.entry("browse.max-videos", "每次搜索读取的视频数"),
+            Map.entry("browse.max-results", "每轮最多分享视频数"),
+            Map.entry("browse.min-score", "刷视频分享最低评分"),
+            Map.entry("browse.seen-file", "已看视频记录文件"),
+            Map.entry("browse.auto-interval-minutes", "自动刷视频间隔（分钟）"),
+            Map.entry("admin.bind", "管理接口监听地址"),
+            Map.entry("admin.port", "管理接口端口"),
+            Map.entry("admin.token", "Android 管理 Token（敏感）"),
+            Map.entry("admin.log-file", "管理接口读取的日志文件")
+    );
 
     private final AppConfig config;
     private final BotIdentity bot;
@@ -83,6 +130,8 @@ public final class AdminServer implements AutoCloseable {
         this.server.createContext("/api/browse", this::handleBrowse);
         this.server.createContext("/api/config", this::handleConfig);
         this.server.createContext("/api/config/raw", this::handleRawConfig);
+        this.server.createContext("/api/config/fields", this::handleConfigFields);
+        this.server.createContext("/api/config/set", this::handleSetConfigField);
     }
 
     public void start() {
@@ -237,6 +286,247 @@ public final class AdminServer implements AutoCloseable {
         body.put("browseAutoIntervalMinutes", config.browse().autoIntervalMinutes());
         body.put("notifyType", config.notification().type());
         sendJson(exchange, 200, body);
+    }
+
+    private void handleConfigFields(HttpExchange exchange) throws IOException {
+        if (!authorized(exchange)) {
+            return;
+        }
+        if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            sendError(exchange, 405, "只支持 GET");
+            return;
+        }
+        if (!Files.isRegularFile(configFile)) {
+            sendError(exchange, 404, "配置文件不存在");
+            return;
+        }
+        Map<String, String> descriptions = templateDescriptions();
+        List<Map<String, Object>> fields = new ArrayList<>();
+        String text = Files.readString(configFile, StandardCharsets.UTF_8);
+        for (String line : text.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                continue;
+            }
+            int eq = trimmed.indexOf('=');
+            if (eq <= 0) {
+                continue;
+            }
+            String key = trimmed.substring(0, eq).trim();
+            String value = trimmed.substring(eq + 1);
+            boolean sensitive = isSensitiveKey(key);
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("key", key);
+            item.put("description", descriptions.getOrDefault(key,
+                    FIELD_DESCRIPTIONS.getOrDefault(key, key)));
+            item.put("category", categoryOf(key));
+            item.put("sensitive", sensitive);
+            item.put("value", sensitive ? (value.isBlank() ? "" : "已设置") : value);
+            fields.add(item);
+        }
+        sendJson(exchange, 200, Map.of("ok", true, "fields", fields));
+    }
+
+    private void handleSetConfigField(HttpExchange exchange) throws IOException {
+        if (!authorized(exchange)) {
+            return;
+        }
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            sendError(exchange, 405, "只支持 POST");
+            return;
+        }
+        if (!Files.isRegularFile(configFile)) {
+            sendError(exchange, 404, "配置文件不存在");
+            return;
+        }
+        JsonNode body;
+        try {
+            body = MAPPER.readTree(exchange.getRequestBody().readAllBytes());
+        } catch (Exception e) {
+            sendError(exchange, 400, "JSON 格式错误");
+            return;
+        }
+        String key = body.path("key").asText("").trim();
+        String value = body.path("value").asText("");
+        if (key.isEmpty() || key.contains("=") || key.contains("\n") || key.contains("\r")) {
+            sendError(exchange, 400, "配置键名无效");
+            return;
+        }
+        if (value.contains("\n") || value.contains("\r")) {
+            sendError(exchange, 400, "配置值不能包含换行");
+            return;
+        }
+        Set<String> knownKeys = new LinkedHashSet<>(templateDescriptions().keySet());
+        String original = Files.readString(configFile, StandardCharsets.UTF_8);
+        for (String line : original.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("#")) {
+                continue;
+            }
+            int eq = trimmed.indexOf('=');
+            if (eq > 0) {
+                knownKeys.add(trimmed.substring(0, eq).trim());
+            }
+        }
+        if (!knownKeys.contains(key)) {
+            sendError(exchange, 400, "未知配置项：" + key);
+            return;
+        }
+        if (isSensitiveKey(key) && value.isBlank()) {
+            sendError(exchange, 400, "敏感配置项不能设置为空");
+            return;
+        }
+        String updated = replaceProperty(original, key, value);
+        try {
+            writeConfigText(updated);
+            log.info("[管理] Android 修改配置项: {}={}", key, isSensitiveKey(key) ? "***" : value);
+            sendJson(exchange, 200, Map.of(
+                    "ok", true,
+                    "message", "已保存 " + key + "，重启电脑端机器人后生效"
+            ));
+        } catch (ConfigException e) {
+            sendError(exchange, 400, "配置校验失败：" + e.getMessage());
+        } catch (IOException e) {
+            sendError(exchange, 500, "写入失败：" + e.getMessage());
+        }
+    }
+
+    private Map<String, String> templateDescriptions() {
+        Map<String, String> result = new LinkedHashMap<>();
+        try (InputStream input = AdminServer.class.getResourceAsStream("/config-template.properties")) {
+            if (input == null) {
+                return result;
+            }
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(input, StandardCharsets.UTF_8));
+            List<String> comments = new ArrayList<>();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty()) {
+                    comments.clear();
+                    continue;
+                }
+                if (trimmed.startsWith("#")) {
+                    String comment = trimmed.substring(1).trim();
+                    if (comment.startsWith("----") || comment.startsWith("====")
+                            || comment.contains("以下配置项")) {
+                        comments.clear();
+                    } else if (!comment.isEmpty()) {
+                        comments.add(comment);
+                    }
+                    continue;
+                }
+                int eq = trimmed.indexOf('=');
+                if (eq > 0) {
+                    String key = trimmed.substring(0, eq).trim();
+                    if (!comments.isEmpty()) {
+                        result.put(key, String.join("；", comments));
+                    }
+                    comments.clear();
+                }
+            }
+        } catch (IOException ignored) {
+        }
+        return result;
+    }
+
+    private static String categoryOf(String key) {
+        if (key.startsWith("bilibili.")) {
+            return "B站账号";
+        }
+        if (key.startsWith("deepseek.")) {
+            return "DeepSeek";
+        }
+        if (key.startsWith("reply.")) {
+            return "回复与人设";
+        }
+        if (key.startsWith("risk.")) {
+            return "请求保护";
+        }
+        if (key.startsWith("notify.")) {
+            return "通知";
+        }
+        if (key.startsWith("recommend.")) {
+            return "收藏推荐";
+        }
+        if (key.startsWith("video.")) {
+            return "视频画面";
+        }
+        if (key.startsWith("live.")) {
+            return "直播";
+        }
+        if (key.startsWith("browse.")) {
+            return "刷视频";
+        }
+        if (key.startsWith("admin.")) {
+            return "手机管理";
+        }
+        if (key.startsWith("app.")) {
+            return "文件路径";
+        }
+        return "其他";
+    }
+
+    private static boolean isSensitiveKey(String key) {
+        String lower = key.toLowerCase();
+        return lower.contains("password") || lower.contains("cookie")
+                || lower.contains("api-key") || lower.contains("token");
+    }
+
+    private static String replaceProperty(String text, String key, String value) {
+        List<String> lines = new ArrayList<>(List.of(text.split("\\R", -1)));
+        boolean replaced = false;
+        for (int i = 0; i < lines.size(); i++) {
+            String trimmed = lines.get(i).trim();
+            if (trimmed.startsWith("#")) {
+                continue;
+            }
+            if (trimmed.startsWith(key + "=")) {
+                lines.set(i, key + "=" + value);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            if (lines.isEmpty() || !lines.get(lines.size() - 1).isEmpty()) {
+                lines.add("");
+            }
+            lines.add(key + "=" + value);
+        }
+        return String.join("\n", lines);
+    }
+
+    private void writeConfigText(String text) throws ConfigException, IOException {
+        Properties props = new Properties();
+        props.load(new StringReader(text));
+        ConfigLoader.parse(props, configFile.getParent());
+        synchronized (configLock) {
+            Path backup = configFile.resolveSibling(configFile.getFileName() + ".bak");
+            Path temp = configFile.resolveSibling(configFile.getFileName() + ".tmp");
+            try {
+                if (Files.isRegularFile(configFile)) {
+                    Files.copy(configFile, backup, StandardCopyOption.REPLACE_EXISTING);
+                }
+                Files.writeString(temp, text, StandardCharsets.UTF_8);
+                try {
+                    Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(configFile);
+                    Files.setPosixFilePermissions(temp, permissions);
+                } catch (Exception ignored) {
+                }
+                try {
+                    Files.move(temp, configFile, StandardCopyOption.REPLACE_EXISTING,
+                            StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException e) {
+                    Files.move(temp, configFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } finally {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException ignored) {
+                }
+            }
+        }
     }
 
     private void handleRawConfig(HttpExchange exchange) throws IOException {

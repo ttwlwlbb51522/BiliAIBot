@@ -4,7 +4,7 @@
 
 项目使用 Java 17 + Maven 编写，不依赖数据库，单进程轮询即可运行。
 
-当前版本：**1.20.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
+当前版本：**1.21.0**（见 [VERSION](VERSION) 与 [CHANGELOG.md](CHANGELOG.md)）
 
 ---
 
@@ -859,8 +859,10 @@ Android 模拟器使用 `http://10.0.2.2:24444`，真机必须用电脑实际 IP
 | `POST` | `/api/drafts/{id}/drop` | 丢弃草稿 |
 | `GET` | `/api/logs?lines=200` | 最近日志 |
 | `GET` | `/api/config` | 安全配置摘要 |
-| `GET` | `/api/config/raw` | 读取完整配置文件 |
-| `POST` | `/api/config/raw` | 校验并保存完整配置文件 |
+| `GET` | `/api/config/fields` | 配置项列表（键名、含义、当前值、分类） |
+| `POST` | `/api/config/set` | 修改单个配置项 |
+| `GET` | `/api/config/raw` | 读取完整配置文件（兼容接口） |
+| `POST` | `/api/config/raw` | 校验并保存完整配置文件（兼容接口） |
 | `POST` | `/api/browse?keyword=...` | 手动刷视频 |
 
 请求头需要带：
@@ -1059,7 +1061,7 @@ Cookie 或缓存会话已失效。程序会自动尝试账号密码登录；如�
 - **MINOR**（第二位）：向后兼容的新功能。
 - **PATCH**（第三位）：Bug 修复。
 
-当前版本为 `1.20.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
+当前版本为 `1.21.0`。`VERSION` 与 `pom.xml` 保持同步，发布时使用 Git 标签 `vX.Y.Z`。
 
 递增版本号：
 

@@ -96,6 +96,28 @@ class AdminServerTest {
             assertEquals(200, saved.statusCode());
             assertTrue(MAPPER.readTree(saved.body()).path("ok").asBoolean());
             assertTrue(Files.readString(configFile).contains("edited from android test"));
+
+            HttpResponse<String> fieldsResponse = client.send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/config/fields"))
+                            .header("X-Admin-Token", "test-token")
+                            .GET().build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, fieldsResponse.statusCode());
+            JsonNode fields = MAPPER.readTree(fieldsResponse.body()).path("fields");
+            assertTrue(fields.isArray());
+            assertTrue(fields.size() > 0);
+
+            HttpResponse<String> setResponse = client.send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/config/set"))
+                            .header("X-Admin-Token", "test-token")
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(
+                                    "{\"key\":\"browse.max-videos\",\"value\":\"6\"}"))
+                            .build(),
+                    HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, setResponse.statusCode());
+            assertTrue(MAPPER.readTree(setResponse.body()).path("ok").asBoolean());
+            assertTrue(Files.readString(configFile).contains("browse.max-videos=6"));
         } finally {
             server.close();
         }
